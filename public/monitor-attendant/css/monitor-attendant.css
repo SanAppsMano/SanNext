@@ -314,14 +314,14 @@ body {
 
 /* Nome do app */
 .logo-text {
-  font-size: 1.75rem;  /* aumentei de 1.5rem para 1.75rem */
+  font-size: 1.65rem;  /* aumentei de 1.5rem para 1.75rem */
   font-weight: 600;
   color: #ffffff;
 }
 
 /* Nome da empresa */
 .company-text {
-  font-size: 1.5rem;  /* aumentei de 0.9rem para 1.5rem */
+  font-size: 1.3rem;  /* aumentei de 0.9rem para 1.5rem */
   color: #ffffff;
   margin-top: 0.1rem;
 }
