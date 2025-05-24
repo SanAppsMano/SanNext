@@ -276,8 +276,32 @@ body {
   padding: 1rem;
 }
 
-.header .logo-img {
-  width: 100px;  /* ajuste conforme precisar */
-  height: auto;
+/* Container do header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #005a9c; /* Exemplo de cor de fundo */
 }
 
+/* Logo: ícone + texto */
+.header .logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Ícone da logo */
+.logo-icon {
+  width: 40px;      /* tamanho do ícone */
+  height: 40px;     /* mantém proporção quadrada */
+  object-fit: contain;
+}
+
+/* Texto da logo */
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;   /* cor do texto, ex: branco */
+}
