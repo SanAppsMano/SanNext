@@ -276,32 +276,53 @@ body {
   padding: 1rem;
 }
 
-/* Container do header */
+/* Header principal */
 .header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: #005a9c; /* Exemplo de cor de fundo */
+  justify-content: space-between; /* Logo à esquerda, botão à direita */
+  padding: 0.75rem 1rem;
+  background-color: #005a9c;
 }
 
-/* Logo: ícone + texto */
-.header .logo {
+/* Contêiner da logo + textos */
+.logo-container {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 /* Ícone da logo */
 .logo-icon {
-  width: 40px;      /* tamanho do ícone */
-  height: 40px;     /* mantém proporção quadrada */
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
-/* Texto da logo */
+/* Bloco de textos (SanNext + empresa) */
+.logo-texts {
+  display: flex;
+  flex-direction: column; /* texto principal em cima, empresa embaixo */
+  line-height: 1.1;
+}
+
+/* Nome do app */
 .logo-text {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #ffffff;   /* cor do texto, ex: branco */
+  color: #ffffff;
+}
+
+/* Nome da empresa */
+.company-text {
+  font-size: 0.9rem;
+  color: #ffffff;
+}
+
+/* Botão */
+#btn-delete-config {
+  /* ja herda .btn .btn-secondary, mas ajuste se quiser: */
+  background-color: #ffffff;
+  color: #005a9c;
+  border: none;
 }
