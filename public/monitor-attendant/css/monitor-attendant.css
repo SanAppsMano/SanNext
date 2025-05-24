@@ -269,4 +269,15 @@ body {
 #login-overlay[hidden] {
   display: none !important;
 }
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.header .logo-img {
+  width: 100px;  /* ajuste conforme precisar */
+  height: auto;
+}
 
