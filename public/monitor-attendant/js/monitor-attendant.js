@@ -153,15 +153,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if(id) url+=`&id=${encodeURIComponent(id)}`;
       const {called,attendant}=await (await fetch(url)).json();
       updateCall(called,attendant);
+      // Atualiza status completo após chamar
+      fetchStatus(t);
       fetchCancelled(t);
     };
+
     btnRepeat.onclick = async ()=>{
       const {called,attendant}=await (await fetch(
         `/.netlify/functions/chamar?t=${t}&num=${callCounter}`
       )).json();
       updateCall(called,attendant);
+      fetchStatus(t);
       fetchCancelled(t);
     };
+
     btnManual.onclick = async ()=>{
       const num=Number(selectManual.value);
       if(!num) return;
@@ -169,12 +174,18 @@ document.addEventListener('DOMContentLoaded', () => {
         `/.netlify/functions/chamar?t=${t}&num=${num}`
       )).json();
       updateCall(called,attendant);
+      fetchStatus(t);
       fetchCancelled(t);
     };
+
     btnReset.onclick = async ()=>{
       if(!confirm('Resetar tickets?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`,{method:'POST'});
+      // Zera estado local completamente
       updateCall(0,'');
+      ticketCounter = 0;
+      waitingEl.textContent = '0';
+      updateManualOptions();
       fetchCancelled(t);
     };
 
