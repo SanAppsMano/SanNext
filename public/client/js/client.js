@@ -1,3 +1,5 @@
+// public/client/js/client.js
+
 // Captura params da URL
 const urlParams   = new URL(location).searchParams;
 const tenantId    = urlParams.get("t");
@@ -13,19 +15,70 @@ const overlay     = document.getElementById("overlay");
 const alertSound  = document.getElementById("alert-sound");
 const companyEl   = document.getElementById("company-name");
 
-let clientId, ticketNumber, polling, alertInterval;
+let clientId, ticketNumber;
+let pollingInterval, alertInterval;
 
 // Exibe nome da empresa (se fornecido)
 if (empresa && companyEl) {
   companyEl.textContent = decodeURIComponent(empresa);
 }
 
-// Primeiro clique: destrava áudio/vibração/notificações
-btnStart.addEventListener("click", () => {
-  alertSound.play().catch(()=>{}); // apenas para destravar áudio
+// Primeiro clique: destrava áudio/vibração/notificações e entra na fila
+btnStart.addEventListener("click", async () => {
+  // destrava o áudio
+  alertSound.play().catch(()=>{});
   overlay.classList.add("hidden");
-  initQueue(); // inicia conexões
+
+  try {
+    // 1) Entra na fila e pega ticket + clientId
+    const joinRes = await fetch(`/.netlify/functions/entrar?t=${tenantId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    const joinData = await joinRes.json();
+    clientId      = joinData.clientId;
+    ticketNumber  = joinData.ticket;
+
+    // 2) Exibe no UI
+    ticketEl.textContent = ticketNumber;
+    statusEl.textContent = "Você entrou na fila";
+    btnCancel.disabled   = false;
+
+    // 3) Inicia polling de status
+    startPolling();
+  } catch (err) {
+    console.error("Erro ao entrar na fila:", err);
+    statusEl.textContent = "Falha ao entrar na fila. Tente novamente.";
+  }
 });
+
+// Função de polling para verificar se foi chamado
+function startPolling() {
+  pollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/.netlify/functions/status?t=${tenantId}&client=${clientId}`);
+      const data = await res.json();
+      if (data.called && !alertInterval) {
+        // 4) Foi chamado: alerta e animação
+        statusEl.textContent = "É a sua vez!";
+        statusEl.classList.add("blink");
+        playAlertLoop();
+      }
+    } catch (err) {
+      console.error("Erro no polling:", err);
+    }
+  }, 2000);
+}
+
+// Loop de alerta sonoro
+function playAlertLoop() {
+  alertInterval = setInterval(() => {
+    if (!alertSound.muted) {
+      alertSound.currentTime = 0;
+      alertSound.play().catch(()=>{});
+    }
+  }, 5000);
+}
 
 // Toggle silenciar
 btnSilence.addEventListener("click", () => {
@@ -38,53 +91,20 @@ btnCancel.addEventListener("click", async () => {
   btnCancel.disabled = true;
   statusEl.textContent = "Cancelando…";
   clearInterval(alertInterval);
-  clearInterval(polling);
+  clearInterval(pollingInterval);
 
-  await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId })
-  });
-
-  statusEl.textContent = "Você saiu da fila.";
-  ticketEl.textContent  = "–";
-  statusEl.classList.remove("blink");
+  try {
+    await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId })
+    });
+    statusEl.textContent = "Você saiu da fila.";
+    ticketEl.textContent = "–";
+    statusEl.classList.remove("blink");
+  } catch (err) {
+    console.error("Erro ao cancelar:", err);
+    statusEl.textContent = "Falha ao cancelar. Tente novamente.";
+    btnCancel.disabled = false;
+  }
 });
-
-// Função principal: conecta ao servidor e fica de olho no seu número
-function initQueue() {
-  // exemplo de subscribe via WebSocket ou polling...
-  // você pode manter aqui seu código original de subscribe/polling
-  // quando receber { ticket, clientId }, faça:
-  //   clientId    = data.clientId;
-  //   ticketNumber= data.ticket;
-  //   ticketEl.textContent = ticketNumber;
-  //   btnCancel.disabled = false;
-  //
-  // e quando alguém chamar você:
-  //   statusEl.textContent = "É a sua vez!";
-  //   statusEl.classList.add("blink");
-  //   tocarAlerta();
-  //
-  // abaixo um pseudocódigo de polling:
-
-  polling = setInterval(async () => {
-    const res = await fetch(`/.netlify/functions/status?t=${tenantId}&client=${clientId}`);
-    const data = await res.json();
-    if (data.called && !alertInterval) {
-      statusEl.textContent = "É a sua vez!";
-      statusEl.classList.add("blink");
-      tocarAlerta();
-    }
-  }, 2000);
-}
-
-// Dispara alerta sonoro em loop até silenciar
-function tocarAlerta() {
-  alertInterval = setInterval(() => {
-    if (!alertSound.muted) {
-      alertSound.currentTime = 0;
-      alertSound.play().catch(()=>{});
-    }
-  }, 5000);
-}
