@@ -5,11 +5,11 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const urlParams      = new URL(location).searchParams;
-  let token            = urlParams.get('t');
-  let empresaParam     = urlParams.get('empresa');
-  const storedConfig   = localStorage.getItem('monitorConfig');
-  let cfg              = storedConfig ? JSON.parse(storedConfig) : null;
+  const urlParams     = new URL(location).searchParams;
+  let token           = urlParams.get('t');
+  let empresaParam    = urlParams.get('empresa');
+  const storedConfig  = localStorage.getItem('monitorConfig');
+  let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
 
   if (!token && cfg && cfg.token) token = cfg.token;
 
@@ -52,17 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // UI principal
-  const headerLabel    = document.getElementById('header-label');
-  const attendantInput = document.getElementById('attendant-id');
-  const currentCallEl  = document.getElementById('current-call');
-  const waitingEl      = document.getElementById('waitingCount');  // Corrigido para corresponder ao ID no HTML
-  const cancelListEl   = document.getElementById('cancel-list');
-  const btnNext        = document.getElementById('btn-next');
-  const btnRepeat      = document.getElementById('btn-repeat');
-  const selectManual   = document.getElementById('manualSelect'); // Corrigido para corresponder ao ID no HTML
-  const btnManual      = document.getElementById('btn-manual');
-  const btnReset       = document.getElementById('btn-reset');
-  const qrContainer    = document.getElementById('qrcode');
+  const headerLabel   = document.getElementById('header-label');
+  const attendantInput= document.getElementById('attendant-id');
+  const currentCallEl = document.getElementById('current-call');
+  const waitingEl     = document.getElementById('waiting-count');
+  const cancelListEl  = document.getElementById('cancel-list');
+  const btnNext       = document.getElementById('btn-next');
+  const btnRepeat     = document.getElementById('btn-repeat');
+  const selectManual  = document.getElementById('manual-select');
+  const btnManual     = document.getElementById('btn-manual');
+  const btnReset      = document.getElementById('btn-reset');
+  const qrContainer   = document.getElementById('qrcode');
 
   // Cria overlay para QR ampliado
   const qrOverlay        = document.createElement('div');
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(qrOverlay);
 
   let callCounter = 0, ticketCounter = 0;
-  const fmtTime   = ts => new Date(ts).toLocaleTimeString();
+  const fmtTime = ts => new Date(ts).toLocaleTimeString();
 
   /** Renderiza QR apontando para /client/?t=…&empresa=… */
   function renderQRCode(tId) {
@@ -114,139 +114,134 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchStatus(t) {
     try {
-      const res = await fetch(`/.netlify/functions/status?t=${encodeURIComponent(t)}`);
+      const res = await fetch(`/.netlify/functions/status?t=${t}`);
       const { currentCall, ticketCounter:tc, attendant } = await res.json();
       updateCall(currentCall, attendant);
       ticketCounter = tc;
-      waitingEl.textContent = Math.max(0, tc - currentCall);
+      waitingEl.textContent = Math.max(0, tc-currentCall);
       updateManualOptions();
-    } catch(e) {
-      console.error('status:', e);
-    }
+    } catch(e){ console.error(e) }
   }
 
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione…</option>';
-    for(let i = callCounter + 1; i <= ticketCounter; i++){
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = i;
+    for(let i=callCounter+1;i<=ticketCounter;i++){
+      const opt=document.createElement('option');
+      opt.value=i; opt.textContent=i;
       selectManual.appendChild(opt);
     }
-    selectManual.disabled = (callCounter + 1 > ticketCounter);
+    selectManual.disabled = (callCounter+1>ticketCounter);
   }
 
   async function fetchCancelled(t) {
     try {
-      const res = await fetch(`/.netlify/functions/cancelados?t=${encodeURIComponent(t)}`);
-      const { cancelled = [] } = await res.json();
+      const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
+      const { cancelled=[] } = await res.json();
       cancelListEl.innerHTML = '';
-      cancelled.forEach(({ticket, ts}) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
+      cancelled.forEach(({ticket,ts})=>{
+        const li=document.createElement('li');
+        li.innerHTML=`<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
-    } catch(e){ console.error('cancelados:', e); }
+    } catch(e){ console.error('cancelados:',e) }
   }
 
   function initApp(t) {
-    btnNext.onclick = async () => {
-      const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${encodeURIComponent(t)}`;
-      if(id) url += `&id=${encodeURIComponent(id)}`;
-      const {called, attendant} = await (await fetch(url)).json();
-      updateCall(called, attendant);
+    btnNext.onclick = async ()=>{
+      const id=attendantInput.value.trim();
+      let url=`/.netlify/functions/chamar?t=${t}`;
+      if(id) url+=`&id=${encodeURIComponent(id)}`;
+      const {called,attendant}=await (await fetch(url)).json();
+      updateCall(called,attendant);
       fetchCancelled(t);
     };
-    btnRepeat.onclick = async () => {
-      const {called, attendant} = await (await fetch(
-        `/.netlify/functions/chamar?t=${encodeURIComponent(t)}&num=${callCounter}`
+    btnRepeat.onclick = async ()=>{
+      const {called,attendant}=await (await fetch(
+        `/.netlify/functions/chamar?t=${t}&num=${callCounter}`
       )).json();
-      updateCall(called, attendant);
+      updateCall(called,attendant);
       fetchCancelled(t);
     };
-    btnManual.onclick = async () => {
-      const num = Number(selectManual.value);
+    btnManual.onclick = async ()=>{
+      const num=Number(selectManual.value);
       if(!num) return;
-      const {called, attendant} = await (await fetch(
-        `/.netlify/functions/chamar?t=${encodeURIComponent(t)}&num=${num}`
+      const {called,attendant}=await (await fetch(
+        `/.netlify/functions/chamar?t=${t}&num=${num}`
       )).json();
-      updateCall(called, attendant);
+      updateCall(called,attendant);
       fetchCancelled(t);
     };
-    btnReset.onclick = async () => {
+    btnReset.onclick = async ()=>{
       if(!confirm('Resetar tickets?')) return;
-      await fetch(`/.netlify/functions/reset?t=${encodeURIComponent(t)}`,{method:'POST'});
-      updateCall(0, '');
+      await fetch(`/.netlify/functions/reset?t=${t}`,{method:'POST'});
+      updateCall(0,'');
       fetchCancelled(t);
     };
 
     renderQRCode(t);
     fetchStatus(t);
     fetchCancelled(t);
-    setInterval(() => fetchStatus(t), 5000);
-    setInterval(() => fetchCancelled(t), 5000);
+    setInterval(()=>fetchStatus(t),5000);
+    setInterval(()=>fetchCancelled(t),5000);
   }
 
-  function showApp(label, tId) {
-    onboardOverlay.hidden = true;
-    loginOverlay.hidden  = true;
-    headerEl.hidden      = false;
-    mainEl.hidden        = false;
+  function showApp(label,tId) {
+    onboardOverlay.hidden=true;
+    loginOverlay.hidden=true;
+    headerEl.hidden=false;
+    mainEl.hidden=false;
     bodyEl.classList.add('authenticated');
     headerLabel.textContent = label;
     cfg.empresa = label; // para QR
     initApp(tId);
   }
 
-  ;(async () => {
-    if(cfg && cfg.empresa && cfg.senha && token) {
+  ;(async ()=>{
+    if(cfg&&cfg.empresa&&cfg.senha&&token){
       return showApp(cfg.empresa, token);
     }
-    if(token && empresaParam) {
+    if(token && empresaParam){
       try {
         const senhaPrompt = prompt(`Senha para ${empresaParam}:`);
         const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({token, senha: senhaPrompt})
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({token,senha:senhaPrompt})
         });
         if(!res.ok) throw new Error();
         const {empresa} = await res.json();
-        cfg = {token, empresa, senha: senhaPrompt};
-        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
-        history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(empresaParam)}`);
-        return showApp(empresa, token);
+        cfg={token,empresa,senha:senhaPrompt};
+        localStorage.setItem('monitorConfig',JSON.stringify(cfg));
+        history.replaceState(null,'',`/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(empresaParam)}`);
+        return showApp(empresa,token);
       } catch {
         alert('Token ou senha inválidos.');
-        history.replaceState(null, '', '/monitor-attendant/');
+        history.replaceState(null,'','/monitor-attendant/');
       }
     }
-    onboardOverlay.hidden = false;
-    loginOverlay.hidden  = true;
-    onboardSubmit.onclick = async () => {
-      const label = onboardLabel.value.trim();
-      const pw    = onboardPassword.value;
-      if(!label || !pw) {
-        onboardError.textContent = 'Preencha nome e senha.';
-        return;
+    onboardOverlay.hidden=false;
+    loginOverlay.hidden=true;
+    onboardSubmit.onclick=async ()=>{
+      const label=onboardLabel.value.trim(), pw=onboardPassword.value;
+      if(!label||!pw){
+        onboardError.textContent='Preencha nome e senha.';return;
       }
-      onboardError.textContent = '';
+      onboardError.textContent='';
       try {
-        token = crypto.randomUUID().split('-')[0];
-        const trialDays = 7;
-        const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({token, empresa: label, senha: pw, trialDays})
+        token=crypto.randomUUID().split('-')[0];
+        const trialDays=7;
+        const res=await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({token,empresa:label,senha:pw,trialDays})
         });
         const {ok} = await res.json();
         if(!ok) throw new Error();
-        cfg = {token, empresa: label, senha: pw};
-        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
-        history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
-        showApp(label, token);
-      } catch(e) {
+        cfg={token,empresa:label,senha:pw};
+        localStorage.setItem('monitorConfig',JSON.stringify(cfg));
+        history.replaceState(null,'',`/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
+        showApp(label,token);
+      } catch(e){
         console.error(e);
-        onboardError.textContent = 'Erro ao criar monitor.';
+        onboardError.textContent='Erro ao criar monitor.';
       }
     };
   })();
