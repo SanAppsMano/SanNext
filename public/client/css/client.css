@@ -1,25 +1,29 @@
 /* Reset básico */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-/* Corpo */
+/* Fonte padrão */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #fafafa;
   color: #333;
 }
 
-/* Header */
+/* Header mínimo */
 .client-header {
   text-align: center;
   padding: 1rem 0;
   background: #005a9c;
 }
-.logo-text {
+.client-header .logo-text {
   font-size: 1.5rem;
   color: #fff;
   font-weight: 600;
 }
-.company-name {
+.client-header .company-name {
   font-size: 1rem;
   font-weight: 500;
   color: #eef5fb;
@@ -55,6 +59,11 @@ body {
   font-size: 1.25rem;
   color: #555;
 }
+.waiting-count {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: #777;
+}
 
 /* Botão principal toggle */
 .btn-toggle {
@@ -69,11 +78,22 @@ body {
   margin-bottom: 1rem;
   width: 100%;
 }
-.btn-toggle.enter { background-color: #005a9c; }
-.btn-toggle.enter:hover:not(:disabled) { background-color: #004076; }
-.btn-toggle.cancel { background-color: #e74c3c; }
-.btn-toggle.cancel:hover:not(:disabled) { background-color: #c0392b; }
-.btn-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-toggle.enter {
+  background-color: #005a9c;
+}
+.btn-toggle.enter:hover:not(:disabled) {
+  background-color: #004076;
+}
+.btn-toggle.cancel {
+  background-color: #e74c3c;
+}
+.btn-toggle.cancel:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+.btn-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Botão silenciar */
 .btn-silence {
@@ -89,9 +109,11 @@ body {
 /* Overlay inicial */
 .overlay {
   position: fixed;
-  top:0;left:0;right:0;bottom:0;
+  top:0; left:0; right:0; bottom:0;
   background: rgba(0,0,0,0.6);
-  display: flex;align-items:center;justify-content:center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
 .btn-primary {
@@ -103,19 +125,21 @@ body {
   border-radius: 8px;
   cursor: pointer;
 }
-.btn-primary:hover { background-color: #004076; }
+.btn-primary:hover {
+  background-color: #004076;
+}
+
+/* Animação de piscar */
+.blink {
+  animation: blink-animation 1s steps(2, start) infinite;
+}
+@keyframes blink-animation {
+  to { visibility: hidden; }
+}
 
 /* Responsividade */
 @media (max-width:400px) {
   .ticket-card { padding:1.5rem 1rem; }
   .ticket-number { font-size:3.5rem; }
   .btn-toggle { font-size:1.1rem; padding:0.75rem; }
-}
-/* … (todo o CSS anterior permanece) … */
-
-/* Novo: estilo de “Em espera” */
-.waiting-count {
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  color: #777;
 }
