@@ -30,30 +30,27 @@ async function fetchNovaSenha() {
 function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 
-// Inicialização: verifica storage
+// Inicialização
 function bootstrap() {
   const ticket = localStorage.getItem(TICKET_KEY);
   const client = localStorage.getItem(CLIENT_ID_KEY);
   if (ticket && client) {
     mostrarTicket(ticket);
     mostrarStatus('Aguardando chamada...');
-    btnToggle.textContent = 'Desistir na fila';
-    btnToggle.classList.remove('enter');
-    btnToggle.classList.add('cancel');
+    btnToggle.textContent = 'Desistir da fila';
+    btnToggle.classList.replace('enter', 'cancel');
     btnToggle.disabled = false;
     btnStart.hidden = true;
     overlay.remove();
     polling = setInterval(checkStatus, 2000);
   } else {
-    // Estado inicial
     btnToggle.textContent = 'Entrar na fila';
-    btnToggle.classList.remove('cancel');
-    btnToggle.classList.add('enter');
+    btnToggle.classList.replace('cancel', 'enter');
     btnToggle.disabled = true;
   }
 }
 
-// Entra na fila (fetch + persist)
+// Entrar na fila
 async function entrarNaFila() {
   btnToggle.disabled = true;
   localStorage.removeItem(TICKET_KEY);
@@ -79,7 +76,7 @@ async function entrarNaFila() {
   }
 }
 
-// Checa status
+// Checa status de chamada
 async function checkStatus() {
   const ticket = localStorage.getItem(TICKET_KEY);
   if (!ticket) return;
@@ -98,11 +95,11 @@ async function checkStatus() {
       }
     }
   } catch {
-    // erro ignorado
+    // falha silenciosa
   }
 }
 
-// Alerta do usuário
+// Dispara alerta sonoro e vibratório
 function alertUser() {
   btnSilence.hidden = false;
   const doAlert = () => {
@@ -148,11 +145,20 @@ async function desistirDaFila() {
 
 // Eventos
 btnStart.addEventListener('click', () => entrarNaFila());
+
+// **Ação imediata de silenciar**
 btnSilence.addEventListener('click', () => {
   silenced = true;
+  // Interrompe alertInterval imediatamente
   clearInterval(alertInterval);
+  // Para o som e reseta posição
+  alertSound.pause();
+  alertSound.currentTime = 0;
+  // Cancela qualquer vibração em andamento
+  if (navigator.vibrate) navigator.vibrate(0);
   btnSilence.hidden = true;
 });
+
 btnToggle.addEventListener('click', () => {
   const active = Boolean(localStorage.getItem(TICKET_KEY));
   active ? desistirDaFila() : entrarNaFila();
