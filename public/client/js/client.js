@@ -4,6 +4,15 @@
 const urlParams = new URL(location).searchParams;
 const tenantId  = urlParams.get("t");
 
+// pega também o nome da empresa
+const empresa = urlParams.get("empresa");
+if (empresa) {
+  // cria o header se ainda não existir
+  const companyEl = document.getElementById("company-name");
+  if (companyEl) companyEl.textContent = decodeURIComponent(empresa);
+}
+
+
 // elementos
 const ticketEl   = document.getElementById("ticket");
 const statusEl   = document.getElementById("status");
