@@ -20,39 +20,31 @@ const companyEl    = document.getElementById('company-name');
 let polling, alertInterval, lastEventTs = 0, silenced = false;
 let currentTicketNumber = null;
 
-// Se veio empresa via QR, exibe
-if (empresaName) {
-  companyEl.textContent = empresaName;
-}
+if (empresaName) companyEl.textContent = empresaName;
 
-// Fetch do próximo ticket no servidor
+// Busca um novo ticket no servidor
 async function fetchNovaSenha() {
   const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
   if (!res.ok) throw new Error('Erro ao obter senha');
   return res.json(); // { clientId, ticketNumber }
 }
 
-// Atualiza UI
+// Atualizações de UI
 function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 function mostrarEspera(n) { waitingEl.textContent = `Em espera: ${n}`; }
 
-// Limpa estado local e UI (sem recarregar nem overlay)
-function clearLocalState() {
-  clearInterval(polling);
+// Limpa alertas
+function stopAlerts() {
   clearInterval(alertInterval);
   silenced = true;
   btnSilence.hidden = true;
-
-  localStorage.removeItem(TICKET_KEY);
-  localStorage.removeItem(CLIENT_ID_KEY);
-
-  currentTicketNumber = null;
-  mostrarTicket('–');
-  mostrarEspera('–');
+  alertSound.pause();
+  alertSound.currentTime = 0;
+  if (navigator.vibrate) navigator.vibrate(0);
 }
 
-// Inicializa o app a partir do localStorage
+// Inicializa estado a partir do localStorage
 function bootstrap() {
   const ticket = localStorage.getItem(TICKET_KEY);
   const client = localStorage.getItem(CLIENT_ID_KEY);
@@ -62,22 +54,22 @@ function bootstrap() {
     mostrarStatus('Aguardando chamada…');
     mostrarEspera('–');
     btnToggle.textContent = 'Desistir da fila';
-    btnToggle.classList.replace('enter','cancel');
-    btnToggle.disabled = false;
-    btnToggle.hidden = false;
+    btnToggle.hidden    = false;
+    btnToggle.disabled  = false;
     overlay.style.display = 'none';
     polling = setInterval(checkStatus, 2000);
   } else {
+    // ainda não entrou
     mostrarTicket('–');
-    mostrarEspera('–');
     mostrarStatus('Toque para entrar na fila');
-    btnToggle.hidden   = true;
-    btnStart.hidden    = false;
-    btnStart.disabled  = false;
+    mostrarEspera('–');
+    btnToggle.hidden = true;
+    btnStart.hidden  = false;
+    btnStart.disabled = false;
   }
 }
 
-// Fluxo de entrar na fila (busca do servidor)
+// Fluxo “Entrar na fila”
 async function entrarNaFila() {
   btnStart.disabled = true;
   mostrarStatus('Solicitando número…');
@@ -91,10 +83,8 @@ async function entrarNaFila() {
     mostrarStatus('Aguardando chamada…');
     mostrarEspera('–');
     btnToggle.textContent = 'Desistir da fila';
-    btnToggle.classList.replace('enter','cancel');
-    btnToggle.disabled = false;
-    btnToggle.hidden   = false;
-    btnSilence.hidden  = true;
+    btnToggle.hidden    = false;
+    btnToggle.disabled  = false;
     overlay.style.display = 'none';
 
     polling = setInterval(checkStatus, 2000);
@@ -104,25 +94,41 @@ async function entrarNaFila() {
   }
 }
 
-// Verifica status e detecta reset
+// Checa status a cada intervalo
 async function checkStatus() {
   if (currentTicketNumber === null) return;
   try {
     const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
     const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
 
-    // 1) Detecta reset no servidor
+    // **1) Se o servidor resetou a fila**, buscamos imediatamente um novo número:
     if (ticketCounter < currentTicketNumber) {
-      // limpa local e já faz nova entrada automática
-      clearLocalState();
-      return entrarNaFila();
+      stopAlerts();
+      mostrarStatus('Fila resetada. Buscando novo número…');
+      try {
+        const { clientId, ticketNumber } = await fetchNovaSenha();
+        currentTicketNumber = ticketNumber;
+        localStorage.setItem(CLIENT_ID_KEY, clientId);
+        localStorage.setItem(TICKET_KEY, ticketNumber);
+
+        mostrarTicket(ticketNumber);
+        mostrarStatus('Aguardando chamada…');
+        mostrarEspera('–');
+        // mantém o botão desistir visível
+        btnToggle.textContent = 'Desistir da fila';
+        btnToggle.hidden    = false;
+        btnToggle.disabled  = false;
+      } catch {
+        mostrarStatus('Erro ao atualizar número. Tente novamente.');
+      }
+      return;
     }
 
-    // 2) Atualiza “Em espera”
+    // **2) Atualiza “Em espera”**
     const waitCount = Math.max(0, currentTicketNumber - currentCall);
     mostrarEspera(waitCount);
 
-    // 3) Atualiza status de chamada
+    // **3) Atualiza chamando / vez**
     if (currentCall !== currentTicketNumber) {
       mostrarStatus(`Chamando: ${currentCall}`);
     } else {
@@ -138,7 +144,7 @@ async function checkStatus() {
   }
 }
 
-// Alerta sonoro e vibratório
+// Dispara alertas
 function alertUser() {
   btnSilence.hidden = false;
   alertSound.currentTime = 0;
@@ -152,7 +158,7 @@ function alertUser() {
   }, 5000);
 }
 
-// Desistir da fila
+// “Desistir da fila”
 async function desistirDaFila() {
   btnToggle.disabled = true;
   const clientId     = localStorage.getItem(CLIENT_ID_KEY);
@@ -164,25 +170,29 @@ async function desistirDaFila() {
       body: JSON.stringify({ clientId, ticketNumber })
     });
   }
-  clearLocalState();
+  stopAlerts();
+  clearInterval(polling);
+  currentTicketNumber = null;
+  mostrarTicket('–');
+  mostrarEspera('–');
   mostrarStatus('Você saiu da fila. Toque para entrar novamente.');
+  btnToggle.hidden = true;
+  btnStart.hidden  = false;
+  btnStart.disabled = false;
 }
 
-// Eventos
+// Listeners
 btnStart.addEventListener('click', entrarNaFila);
-btnToggle.addEventListener('click', () => { if (currentTicketNumber) desistirDaFila() });
+btnToggle.addEventListener('click', () => {
+  if (currentTicketNumber !== null) desistirDaFila();
+});
 btnSilence.addEventListener('click', () => {
   silenced = true;
-  clearInterval(alertInterval);
-  alertSound.pause();
-  alertSound.currentTime = 0;
-  if (navigator.vibrate) navigator.vibrate(0);
-  btnSilence.hidden = true;
+  stopAlerts();
 });
 
 window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
 window.addEventListener('online',  () => mostrarStatus('Conectado'));
-
 window.addEventListener('beforeunload', e => {
   if (currentTicketNumber !== null) {
     const msg = 'Se você sair ou atualizar, perderá sua senha atual. Tem certeza?';
