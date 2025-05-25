@@ -1,32 +1,36 @@
-import { Redis } from "@upstash/redis";
+// functions/reset.js
+import { Redis } from '@upstash/redis'
 
-export async function handler(event) {
-  const url        = new URL(event.rawUrl);
-  const tenantId   = url.searchParams.get("t");
-  const attendant  = url.searchParams.get("id") || "";
-  if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN
+})
+
+export const handler = async (event) => {
+  const token = event.queryStringParameters?.t
+  if (!token) {
+    return { statusCode: 400, body: 'Missing tenant token' }
   }
 
-  const redis  = Redis.fromEnv();
-  const prefix = `tenant:${tenantId}:`;
-  const ts     = Date.now();
+  try {
+    // Chave do contador de tickets
+    const counterKey = `ticket:${token}`
+    // Chave da lista da fila
+    const queueKey   = `queue:${token}`
 
-  // Zera todos os contadores
-  await redis.set(prefix + "ticketCounter", 0);
-  await redis.set(prefix + "callCounter",  0);
-  await redis.set(prefix + "currentCall",  0);
-  await redis.set(prefix + "currentCallTs", ts);
-  await redis.del(prefix + "currentAttendant");
+    // Remove ambos
+    await redis.del(counterKey)
+    await redis.del(queueKey)
 
-  // Log de reset
-  await redis.lpush(
-    prefix + "log:reset",
-    JSON.stringify({ attendant, ts })
-  );
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ reset: true, attendant, ts }),
-  };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ ok: true })
+    }
+  } catch (e) {
+    console.error('Reset error:', e)
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ ok: false, error: e.message })
+    }
+  }
 }
