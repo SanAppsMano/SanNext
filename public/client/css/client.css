@@ -1,4 +1,4 @@
-/* container básico */
+/* Container principal */
 .container {
   max-width: 360px;
   margin: 2rem auto;
@@ -6,41 +6,54 @@
   font-family: sans-serif;
 }
 
-/* exibição do ticket */
+/* Exibição do ticket */
 .ticket {
   font-size: 2.5rem;
   margin: 1rem 0;
 }
 
-/* status */
+/* Status */
 .status {
   margin-bottom: 1.5rem;
   color: #555;
 }
 
-/* BOTÃO “Desistir da fila” / “Entrar na fila” */
+/* Botão de toggle – fonte maior e negrito */
 .btn-cancel {
-  background-color: #e74c3c;
-  color: #fff;
   border: none;
   padding: 0.6rem 1.2rem;
-  font-size: 1rem;
+  font-size: 1.2rem;
+  font-weight: bold;
   border-radius: 4px;
+  color: #fff;
   cursor: pointer;
   transition: background-color 0.2s ease;
   margin-bottom: 0.5rem;
 }
 
-.btn-cancel:hover:not(:disabled) {
+/* Estado “Entrar na fila” (azul) */
+.btn-cancel.enter {
+  background-color: #005a9c;
+}
+.btn-cancel.enter:hover:not(:disabled) {
+  background-color: #004076;
+}
+
+/* Estado “Desistir da fila” (vermelho) */
+.btn-cancel.cancel {
+  background-color: #e74c3c;
+}
+.btn-cancel.cancel:hover:not(:disabled) {
   background-color: #c0392b;
 }
 
+/* Quando desabilitado mantém opacidade baixa */
 .btn-cancel:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* BOTÃO silenciar */
+/* Botão Silenciar */
 .btn-silence {
   background: transparent;
   border: none;
@@ -50,7 +63,7 @@
   cursor: pointer;
 }
 
-/* overlay inicial */
+/* Overlay inicial */
 #overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -60,7 +73,6 @@
   justify-content: center;
   z-index: 1000;
 }
-
 #overlay button {
   padding: 1rem 2rem;
   font-size: 1.1rem;
@@ -71,7 +83,7 @@
   cursor: pointer;
 }
 
-/* responsividade mínima */
+/* Responsividade */
 @media (max-width: 400px) {
   .container { margin: 1rem; }
   #overlay button { width: 90%; }
