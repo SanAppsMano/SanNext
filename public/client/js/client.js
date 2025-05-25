@@ -1,204 +1,186 @@
 // public/js/client.js
 
-const TICKET_KEY    = 'sannext_ticket';
-const CLIENT_ID_KEY = 'sannext_clientId';
+// ====== Configurações e seletores ======
+const TENANT_PARAM   = 't';
+const STORAGE_TICKET = 'sannext_ticket';
+const STORAGE_CLIENT = 'sannext_clientId';
 
-const urlParams    = new URL(location).searchParams;
-const tenantId     = urlParams.get('t');
-const empresaName  = urlParams.get('empresa');
+const urlParams   = new URL(location).searchParams;
+const tenantId    = urlParams.get(TENANT_PARAM);
 
-const ticketEl     = document.getElementById('ticket');
-const statusEl     = document.getElementById('status');
-const waitingEl    = document.getElementById('waiting-count');
-const btnSilence   = document.getElementById('btn-silence');
-const btnToggle    = document.getElementById('btn-cancel');
-const btnStart     = document.getElementById('btn-start');
-const overlay      = document.getElementById('overlay');
-const alertSound   = document.getElementById('alert-sound');
-const companyEl    = document.getElementById('company-name');
+const ticketEl    = document.getElementById('ticket');
+const statusEl    = document.getElementById('status');
+const waitingEl   = document.getElementById('waiting-count');
+const btnSilence  = document.getElementById('btn-silence');
+const btnToggle   = document.getElementById('btn-cancel');
+const btnStart    = document.getElementById('btn-start');
+const overlay     = document.getElementById('overlay');
+const alertSound  = document.getElementById('alert-sound');
 
-let polling, alertInterval, lastEventTs = 0, silenced = false;
-let currentTicketNumber = null;
+let polling      = null;
+let lastEventTs  = 0;
+let silenced     = false;
+let myTicket     = null;
 
-if (empresaName) companyEl.textContent = empresaName;
-
-// Busca um novo ticket no servidor
-async function fetchNovaSenha() {
-  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
-  if (!res.ok) throw new Error('Erro ao obter senha');
-  return res.json(); // { clientId, ticketNumber }
+// ====== Helpers de UI ======
+function showInitial() {
+  clearPolling();
+  ticketEl.textContent  = '–';
+  statusEl.textContent  = 'Toque para entrar na fila';
+  waitingEl.textContent = 'Em espera: –';
+  overlay.style.display = 'flex';
+  btnStart.hidden       = false;
+  btnStart.disabled     = false;
+  btnToggle.hidden      = true;
+  btnSilence.hidden     = true;
 }
 
-// Atualizações de UI
-function mostrarTicket(n) { ticketEl.textContent = n; }
-function mostrarStatus(t) { statusEl.textContent = t; }
-function mostrarEspera(n) { waitingEl.textContent = `Em espera: ${n}`; }
+function showWaiting() {
+  overlay.style.display = 'none';
+  btnStart.hidden       = true;
+  btnToggle.hidden      = false;
+  btnToggle.textContent = 'Desistir da fila';
+  btnToggle.disabled    = false;
+  btnSilence.hidden     = true;
+}
 
-// Limpa alertas
-function stopAlerts() {
+function showCalled(attendant) {
+  statusEl.textContent = `É a sua vez! (${attendant})`;
+}
+
+function clearPolling() {
+  if (polling) clearInterval(polling);
   clearInterval(alertInterval);
-  silenced = true;
-  btnSilence.hidden = true;
-  alertSound.pause();
-  alertSound.currentTime = 0;
-  if (navigator.vibrate) navigator.vibrate(0);
 }
 
-// Inicializa estado a partir do localStorage
-function bootstrap() {
-  const ticket = localStorage.getItem(TICKET_KEY);
-  const client = localStorage.getItem(CLIENT_ID_KEY);
-  if (ticket && client) {
-    currentTicketNumber = Number(ticket);
-    mostrarTicket(ticket);
-    mostrarStatus('Aguardando chamada…');
-    mostrarEspera('–');
-    btnToggle.textContent = 'Desistir da fila';
-    btnToggle.hidden    = false;
-    btnToggle.disabled  = false;
-    overlay.style.display = 'none';
-    polling = setInterval(checkStatus, 2000);
-  } else {
-    // ainda não entrou
-    mostrarTicket('–');
-    mostrarStatus('Toque para entrar na fila');
-    mostrarEspera('–');
-    btnToggle.hidden = true;
-    btnStart.hidden  = false;
-    btnStart.disabled = false;
-  }
-}
-
-// Fluxo “Entrar na fila”
-async function entrarNaFila() {
+// ====== Fluxos ======
+async function enterQueue() {
   btnStart.disabled = true;
-  mostrarStatus('Solicitando número…');
+  statusEl.textContent = 'Buscando número…';
   try {
-    const { clientId, ticketNumber } = await fetchNovaSenha();
-    currentTicketNumber = ticketNumber;
-    localStorage.setItem(CLIENT_ID_KEY, clientId);
-    localStorage.setItem(TICKET_KEY, ticketNumber);
+    const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
+    if (!res.ok) throw new Error();
+    const { clientId, ticketNumber } = await res.json();
+    myTicket = ticketNumber;
+    localStorage.setItem(STORAGE_CLIENT, clientId);
+    localStorage.setItem(STORAGE_TICKET, ticketNumber);
 
-    mostrarTicket(ticketNumber);
-    mostrarStatus('Aguardando chamada…');
-    mostrarEspera('–');
-    btnToggle.textContent = 'Desistir da fila';
-    btnToggle.hidden    = false;
-    btnToggle.disabled  = false;
-    overlay.style.display = 'none';
+    ticketEl.textContent = ticketNumber;
+    statusEl.textContent = 'Aguardando chamada…';
+    showWaiting();
 
-    polling = setInterval(checkStatus, 2000);
+    startPolling();
   } catch {
-    mostrarStatus('Erro ao entrar. Tente novamente.');
+    statusEl.textContent = 'Erro ao entrar. Tente novamente.';
     btnStart.disabled = false;
   }
 }
 
-// Checa status a cada intervalo
-async function checkStatus() {
-  if (currentTicketNumber === null) return;
-  try {
-    const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
-    const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
-
-    // **1) Se o servidor resetou a fila**, buscamos imediatamente um novo número:
-    if (ticketCounter < currentTicketNumber) {
-      stopAlerts();
-      mostrarStatus('Fila resetada. Buscando novo número…');
-      try {
-        const { clientId, ticketNumber } = await fetchNovaSenha();
-        currentTicketNumber = ticketNumber;
-        localStorage.setItem(CLIENT_ID_KEY, clientId);
-        localStorage.setItem(TICKET_KEY, ticketNumber);
-
-        mostrarTicket(ticketNumber);
-        mostrarStatus('Aguardando chamada…');
-        mostrarEspera('–');
-        // mantém o botão desistir visível
-        btnToggle.textContent = 'Desistir da fila';
-        btnToggle.hidden    = false;
-        btnToggle.disabled  = false;
-      } catch {
-        mostrarStatus('Erro ao atualizar número. Tente novamente.');
-      }
-      return;
-    }
-
-    // **2) Atualiza “Em espera”**
-    const waitCount = Math.max(0, currentTicketNumber - currentCall);
-    mostrarEspera(waitCount);
-
-    // **3) Atualiza chamando / vez**
-    if (currentCall !== currentTicketNumber) {
-      mostrarStatus(`Chamando: ${currentCall}`);
-    } else {
-      mostrarStatus(`É a sua vez! (${attendant})`);
-      if (timestamp > lastEventTs) {
-        lastEventTs = timestamp;
-        silenced = false;
-        alertUser();
-      }
-    }
-  } catch {
-    // falha silenciosa
+async function cancelQueue() {
+  btnToggle.disabled = true;
+  const clientId = localStorage.getItem(STORAGE_CLIENT);
+  const ticket   = localStorage.getItem(STORAGE_TICKET);
+  if (clientId && ticket) {
+    await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ clientId, ticketNumber: ticket })
+    });
   }
+  showInitial();
+  localStorage.removeItem(STORAGE_CLIENT);
+  localStorage.removeItem(STORAGE_TICKET);
 }
 
-// Dispara alertas
+let alertInterval;
 function alertUser() {
   btnSilence.hidden = false;
   alertSound.currentTime = 0;
   alertSound.play().catch(()=>{});
   if (navigator.vibrate) navigator.vibrate([200,100,200]);
-  alertInterval = setInterval(() => {
+  alertInterval = setInterval(()=>{
     if (silenced) return;
     alertSound.currentTime = 0;
     alertSound.play().catch(()=>{});
     if (navigator.vibrate) navigator.vibrate([200,100,200]);
-  }, 5000);
+  },5000);
 }
 
-// “Desistir da fila”
-async function desistirDaFila() {
-  btnToggle.disabled = true;
-  const clientId     = localStorage.getItem(CLIENT_ID_KEY);
-  const ticketNumber = localStorage.getItem(TICKET_KEY);
-  if (clientId && ticketNumber) {
-    await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ clientId, ticketNumber })
-    });
+async function checkStatus() {
+  try {
+    const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
+    const { currentCall, ticketCounter, attendant, timestamp } = await res.json();
+
+    // Detecta reset no servidor
+    if (ticketCounter < myTicket) {
+      showInitial();
+      localStorage.removeItem(STORAGE_CLIENT);
+      localStorage.removeItem(STORAGE_TICKET);
+      myTicket = null;
+      return;
+    }
+
+    // Atualiza espera
+    const wait = Math.max(0, myTicket - currentCall);
+    waitingEl.textContent = `Em espera: ${wait}`;
+
+    // Atualiza chamada / vez
+    if (currentCall !== myTicket) {
+      statusEl.textContent = `Chamando: ${currentCall}`;
+    } else {
+      // primeira vez que bate timestamp
+      if (timestamp > lastEventTs) {
+        lastEventTs = timestamp;
+        silenced   = false;
+        alertUser();
+      }
+      showCalled(attendant);
+    }
+  } catch {
+    /* ignora erro de fetch */
   }
-  stopAlerts();
-  clearInterval(polling);
-  currentTicketNumber = null;
-  mostrarTicket('–');
-  mostrarEspera('–');
-  mostrarStatus('Você saiu da fila. Toque para entrar novamente.');
-  btnToggle.hidden = true;
-  btnStart.hidden  = false;
-  btnStart.disabled = false;
 }
 
-// Listeners
-btnStart.addEventListener('click', entrarNaFila);
+function startPolling() {
+  clearPolling();
+  polling = setInterval(checkStatus, 2000);
+}
+
+// ====== Binding de eventos ======
+btnStart.addEventListener('click', enterQueue);
+
 btnToggle.addEventListener('click', () => {
-  if (currentTicketNumber !== null) desistirDaFila();
+  if (myTicket !== null) cancelQueue();
 });
+
 btnSilence.addEventListener('click', () => {
   silenced = true;
-  stopAlerts();
+  clearInterval(alertInterval);
+  alertSound.pause();
+  alertSound.currentTime = 0;
+  if (navigator.vibrate) navigator.vibrate(0);
+  btnSilence.hidden = true;
 });
 
-window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
-window.addEventListener('online',  () => mostrarStatus('Conectado'));
+// Proteção F5
 window.addEventListener('beforeunload', e => {
-  if (currentTicketNumber !== null) {
-    const msg = 'Se você sair ou atualizar, perderá sua senha atual. Tem certeza?';
-    e.returnValue = msg;
-    return msg;
+  if (myTicket !== null) {
+    e.returnValue = 'Se sair, perderá sua senha. Tem certeza?';
+    return e.returnValue;
   }
 });
 
-document.addEventListener('DOMContentLoaded', bootstrap);
+// ====== Inicialização ======
+document.addEventListener('DOMContentLoaded', () => {
+  // Se já tinha ticket salvo, entra em waiting direto
+  const saved = localStorage.getItem(STORAGE_TICKET);
+  if (saved) {
+    myTicket = Number(saved);
+    ticketEl.textContent = saved;
+    statusEl.textContent = 'Aguardando chamada…';
+    showWaiting();
+    startPolling();
+  } else {
+    showInitial();
+  }
+});
