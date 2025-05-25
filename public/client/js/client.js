@@ -1,110 +1,88 @@
-// public/client/js/client.js
+// URL params
+const params    = new URL(location).searchParams;
+const tenant    = params.get('t');
+const company   = params.get('empresa');
+const overlay   = document.getElementById('overlay');
+const btnStart  = document.getElementById('btn-start');
+const ticketEl  = document.getElementById('ticket');
+const statusEl  = document.getElementById('status');
+const btnCancel = document.getElementById('btn-cancel');
+const btnSilence= document.getElementById('btn-silence');
+const alertSound= document.getElementById('alert-sound');
+const compEl    = document.getElementById('company-name');
 
-// Captura params da URL
-const urlParams   = new URL(location).searchParams;
-const tenantId    = urlParams.get("t");
-const empresa     = urlParams.get("empresa") || null;
+let clientId, ticket, pollId, alertId;
 
-// Elementos do DOM
-const ticketEl    = document.getElementById("ticket");
-const statusEl    = document.getElementById("status");
-const btnCancel   = document.getElementById("btn-cancel");
-const btnSilence  = document.getElementById("btn-silence");
-const btnStart    = document.getElementById("btn-start");
-const overlay     = document.getElementById("overlay");
-const alertSound  = document.getElementById("alert-sound");
-const companyEl   = document.getElementById("company-name");
+// exibe empresa
+if (company && compEl) compEl.textContent = decodeURIComponent(company);
 
-let clientId, ticketNumber;
-let pollingInterval, alertInterval;
-
-// Exibe nome da empresa (se fornecido)
-if (empresa && companyEl) {
-  companyEl.textContent = decodeURIComponent(empresa);
-}
-
-// Primeiro clique: destrava áudio/vibração/notificações e entra na fila
-btnStart.addEventListener("click", async () => {
-  // destrava o áudio
-  alertSound.play().catch(()=>{});
-  overlay.classList.add("hidden");
-
+// inicia tudo
+btnStart.addEventListener('click', async () => {
+  alertSound.play().catch(() => {});
+  overlay.classList.add('hidden');
   try {
-    // 1) Entra na fila e pega ticket + clientId
-    const joinRes = await fetch(`/.netlify/functions/entrar?t=${tenantId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }
-    });
-    const joinData = await joinRes.json();
-    clientId      = joinData.clientId;
-    ticketNumber  = joinData.ticket;
-
-    // 2) Exibe no UI
-    ticketEl.textContent = ticketNumber;
-    statusEl.textContent = "Você entrou na fila";
-    btnCancel.disabled   = false;
-
-    // 3) Inicia polling de status
+    const res = await fetch(`/.netlify/functions/entrar?t=${tenant}`, { method: 'POST' });
+    const data= await res.json();
+    clientId = data.clientId;
+    ticket   = data.ticket;
+    ticketEl.textContent = ticket;
+    statusEl.textContent = 'Você entrou na fila';
+    btnCancel.disabled = false;
+    btnSilence.classList.remove('hidden');
     startPolling();
-  } catch (err) {
-    console.error("Erro ao entrar na fila:", err);
-    statusEl.textContent = "Falha ao entrar na fila. Tente novamente.";
+  } catch {
+    statusEl.textContent = 'Erro ao entrar. Tente novamente.';
   }
 });
 
-// Função de polling para verificar se foi chamado
+// polling
 function startPolling() {
-  pollingInterval = setInterval(async () => {
+  pollId = setInterval(async () => {
     try {
-      const res = await fetch(`/.netlify/functions/status?t=${tenantId}&client=${clientId}`);
-      const data = await res.json();
-      if (data.called && !alertInterval) {
-        // 4) Foi chamado: alerta e animação
-        statusEl.textContent = "É a sua vez!";
-        statusEl.classList.add("blink");
-        playAlertLoop();
+      const res = await fetch(`/.netlify/functions/status?t=${tenant}&client=${clientId}`);
+      const st  = await res.json();
+      if (st.called) {
+        clearInterval(pollId);
+        statusEl.textContent = 'É a sua vez!';
+        statusEl.classList.add('blink');
+        playAlert();
       }
-    } catch (err) {
-      console.error("Erro no polling:", err);
-    }
+    } catch {}
   }, 2000);
 }
 
-// Loop de alerta sonoro
-function playAlertLoop() {
-  alertInterval = setInterval(() => {
+// alerta em loop
+function playAlert() {
+  alertId = setInterval(() => {
     if (!alertSound.muted) {
       alertSound.currentTime = 0;
-      alertSound.play().catch(()=>{});
+      alertSound.play().catch(() => {});
     }
   }, 5000);
 }
 
-// Toggle silenciar
-btnSilence.addEventListener("click", () => {
+// silenciar
+btnSilence.addEventListener('click', () => {
   alertSound.muted = !alertSound.muted;
-  btnSilence.classList.toggle("active", alertSound.muted);
+  btnSilence.classList.toggle('active', alertSound.muted);
 });
 
-// Desistir da fila
-btnCancel.addEventListener("click", async () => {
+// cancelar fila
+btnCancel.addEventListener('click', async () => {
+  clearInterval(pollId);
+  clearInterval(alertId);
   btnCancel.disabled = true;
-  statusEl.textContent = "Cancelando…";
-  clearInterval(alertInterval);
-  clearInterval(pollingInterval);
-
+  statusEl.textContent = 'Cancelando...';
   try {
-    await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    await fetch(`/.netlify/functions/cancelar?t=${tenant}`, {
+      method: 'POST',
+      headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ clientId })
     });
-    statusEl.textContent = "Você saiu da fila.";
-    ticketEl.textContent = "–";
-    statusEl.classList.remove("blink");
-  } catch (err) {
-    console.error("Erro ao cancelar:", err);
-    statusEl.textContent = "Falha ao cancelar. Tente novamente.";
+    statusEl.textContent = 'Você saiu da fila.';
+    ticketEl.textContent = '–';
+  } catch {
+    statusEl.textContent = 'Erro ao cancelar. Tente novamente.';
     btnCancel.disabled = false;
   }
 });
