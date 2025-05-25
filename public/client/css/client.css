@@ -1,70 +1,103 @@
+/* Reset básico */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fonte padrão */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafafa;
+  color: #333;
+}
+
+/* Header mínimo */
+.client-header {
+  text-align: center;
+  padding: 1rem 0;
+  background: #005a9c;
+}
+.client-header .logo-text {
+  font-size: 1.5rem;
+  color: #fff;
+  font-weight: 600;
+}
+
 /* Container principal */
-.container {
+.client-main {
   max-width: 360px;
   margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Card do ticket */
+.ticket-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   text-align: center;
-  font-family: sans-serif;
+  margin-bottom: 2rem;
 }
-
-/* Exibição do ticket */
-.ticket {
-  font-size: 2.5rem;
-  margin: 1rem 0;
+.ticket-number {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #005a9c;
+  margin-bottom: 0.5rem;
 }
-
-/* Status */
-.status {
-  margin-bottom: 1.5rem;
+.ticket-status {
+  font-size: 1.25rem;
   color: #555;
 }
 
-/* Botão de toggle – fonte maior e negrito */
-.btn-cancel {
+/* Botão principal toggle */
+.btn-toggle {
+  padding: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
   border: none;
-  padding: 0.6rem 1.2rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-radius: 4px;
+  border-radius: 8px;
   color: #fff;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  flex-shrink: 0;
 }
-
-/* Estado “Entrar na fila” (azul) */
-.btn-cancel.enter {
+.btn-toggle.enter {
   background-color: #005a9c;
 }
-.btn-cancel.enter:hover:not(:disabled) {
+.btn-toggle.enter:hover:not(:disabled) {
   background-color: #004076;
 }
-
-/* Estado “Desistir da fila” (vermelho) */
-.btn-cancel.cancel {
+.btn-toggle.cancel {
   background-color: #e74c3c;
 }
-.btn-cancel.cancel:hover:not(:disabled) {
+.btn-toggle.cancel:hover:not(:disabled) {
   background-color: #c0392b;
 }
-
-/* Quando desabilitado mantém opacidade baixa */
-.btn-cancel:disabled {
+.btn-toggle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Botão Silenciar */
+/* Botão silenciar */
 .btn-silence {
   background: transparent;
   border: none;
   color: #555;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
+  font-size: 1rem;
+  align-self: center;
+  margin-bottom: 1rem;
   cursor: pointer;
 }
 
 /* Overlay inicial */
-#overlay {
+.overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6);
@@ -73,18 +106,22 @@
   justify-content: center;
   z-index: 1000;
 }
-#overlay button {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  border: none;
-  border-radius: 6px;
+.overlay .btn-primary {
   background-color: #005a9c;
   color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 8px;
   cursor: pointer;
+}
+.overlay .btn-primary:hover {
+  background-color: #004076;
 }
 
 /* Responsividade */
 @media (max-width: 400px) {
-  .container { margin: 1rem; }
-  #overlay button { width: 90%; }
+  .ticket-card { padding: 1.5rem 1rem; }
+  .ticket-number { font-size: 3.5rem; }
+  .btn-toggle { font-size: 1.1rem; padding: 0.75rem; }
 }
