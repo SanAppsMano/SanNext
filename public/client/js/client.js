@@ -1,176 +1,181 @@
 // public/js/client.js
 
-const TICKET_KEY    = 'sannext_ticket'
-const NEEDS_JOIN    = 'sannext_needsJoin'
-const CLIENT_ID_KEY = 'sannext_clientId'
+const TICKET_KEY    = 'sannext_ticket';
+const NEEDS_JOIN    = 'sannext_needsJoin';
+const CLIENT_ID_KEY = 'sannext_clientId';
 
-const urlParams   = new URL(location).searchParams
-const tenantId    = urlParams.get('t')
-const empresaName = urlParams.get('empresa')
+const urlParams    = new URL(location).searchParams;
+const tenantId     = urlParams.get('t');
+const empresaName  = urlParams.get('empresa');
 
-const ticketEl    = document.getElementById('ticket')
-const statusEl    = document.getElementById('status')
-const btnSilence  = document.getElementById('btn-silence')
-const btnToggle   = document.getElementById('btn-cancel')
-const btnStart    = document.getElementById('btn-start')
-const overlay     = document.getElementById('overlay')
-const alertSound  = document.getElementById('alert-sound')
-const companyEl   = document.getElementById('company-name')
+const ticketEl     = document.getElementById('ticket');
+const statusEl     = document.getElementById('status');
+const waitingEl    = document.getElementById('waiting-count'); // NOVO
+const btnSilence   = document.getElementById('btn-silence');
+const btnToggle    = document.getElementById('btn-cancel');
+const btnStart     = document.getElementById('btn-start');
+const overlay      = document.getElementById('overlay');
+const alertSound   = document.getElementById('alert-sound');
+const companyEl    = document.getElementById('company-name');
 
-let polling, alertInterval, lastEventTs = 0, silenced = false
+let polling, alertInterval, lastEventTs = 0, silenced = false;
+let currentTicketNumber = null;  // armazena seu número
 
 if (empresaName) {
-  companyEl.textContent = empresaName
+  companyEl.textContent = empresaName;
 }
 
 async function fetchNovaSenha() {
-  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`)
-  if (!res.ok) {
-    const data = await res.json().catch(()=>({}))
-    throw new Error(res.status === 429 ? 'RATE_LIMIT' : 'NETWORK')
-  }
-  return res.json()  // { clientId, ticketNumber }
+  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  if (!res.ok) throw new Error('Erro ao obter senha');
+  return res.json();  // { clientId, ticketNumber }
 }
 
-function mostrarTicket(n) { ticketEl.textContent = n }
-function mostrarStatus(t) { statusEl.textContent = t }
+function mostrarTicket(n)   { ticketEl.textContent = n; }
+function mostrarStatus(t)   { statusEl.textContent = t; }
+function mostrarEspera(n)   { waitingEl.textContent = `Em espera: ${n}`; }
 
 function bootstrap() {
-  const ticket = localStorage.getItem(TICKET_KEY)
-  const client = localStorage.getItem(CLIENT_ID_KEY)
+  const ticket = localStorage.getItem(TICKET_KEY);
+  const client = localStorage.getItem(CLIENT_ID_KEY);
   if (ticket && client) {
-    mostrarTicket(ticket)
-    mostrarStatus('Aguardando chamada…')
-    btnToggle.textContent = 'Desistir da fila'
-    btnToggle.classList.replace('enter','cancel')
-    btnToggle.disabled = false
-    btnStart.hidden = true
-    overlay.remove()
-    polling = setInterval(checkStatus,2000)
+    currentTicketNumber = Number(ticket);
+    mostrarTicket(ticket);
+    mostrarStatus('Aguardando chamada…');
+    btnToggle.textContent = 'Desistir na fila';
+    btnToggle.classList.replace('enter','cancel');
+    btnToggle.disabled = false;
+    btnStart.hidden = true;
+    overlay.remove();
+    polling = setInterval(checkStatus,2000);
   } else {
-    btnToggle.textContent = 'Entrar na fila'
-    btnToggle.classList.replace('cancel','enter')
-    btnToggle.disabled = true
+    btnToggle.textContent = 'Entrar na fila';
+    btnToggle.classList.replace('cancel','enter');
+    btnToggle.disabled = true;
+    mostrarEspera('–');
   }
 }
 
 async function entrarNaFila() {
-  btnToggle.disabled = true
-  btnToggle.textContent = 'Aguarde…'
+  btnToggle.disabled = true;
+  btnToggle.textContent = 'Aguarde…';
   try {
-    const { clientId, ticketNumber } = await fetchNovaSenha()
-    localStorage.setItem(CLIENT_ID_KEY, clientId)
-    localStorage.setItem(TICKET_KEY, ticketNumber)
-    localStorage.removeItem(NEEDS_JOIN)
+    const { clientId, ticketNumber } = await fetchNovaSenha();
+    currentTicketNumber = ticketNumber;
+    localStorage.setItem(CLIENT_ID_KEY, clientId);
+    localStorage.setItem(TICKET_KEY, ticketNumber);
+    localStorage.removeItem(NEEDS_JOIN);
 
-    mostrarTicket(ticketNumber)
-    mostrarStatus('Aguardando chamada…')
-    btnToggle.textContent = 'Desistir da fila'
-    btnToggle.classList.replace('enter','cancel')
-    btnToggle.disabled = false
-    btnStart.hidden = true
-    overlay.remove()
-    polling = setInterval(checkStatus,2000)
-  } catch (err) {
-    if (err.message === 'RATE_LIMIT') {
-      mostrarStatus('Muitas tentativas. Aguarde 1 minuto.')
-    } else {
-      mostrarStatus('Erro de rede. Tente novamente.')
-    }
-    // After 60s, restore button
-    setTimeout(() => {
-      const has = !!localStorage.getItem(TICKET_KEY)
-      btnToggle.textContent = has ? 'Desistir da fila' : 'Entrar na fila'
-      btnToggle.disabled = has ? false : false
-      btnToggle.classList.replace(has?'enter':'cancel', has?'cancel':'enter')
-    }, 60000)
+    mostrarTicket(ticketNumber);
+    mostrarStatus('Aguardando chamada…');
+    btnToggle.textContent = 'Desistir na fila';
+    btnToggle.classList.replace('enter','cancel');
+    btnToggle.disabled = false;
+    btnStart.hidden = true;
+    overlay.remove();
+    polling = setInterval(checkStatus,2000);
+  } catch {
+    mostrarStatus('Erro ao entrar. Tente novamente.');
+    btnToggle.textContent = 'Entrar na fila';
+    btnToggle.disabled = false;
   }
 }
 
 async function checkStatus() {
-  const ticket = localStorage.getItem(TICKET_KEY)
-  if (!ticket) return
+  if (currentTicketNumber === null) return;
   try {
-    const res = await fetch(`/.netlify/functions/status?t=${tenantId}`)
-    const { currentCall, timestamp, attendant } = await res.json()
-    if (currentCall !== Number(ticket)) {
-      mostrarStatus(`Chamando: ${currentCall}`)
+    const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
+    const { currentCall, timestamp, attendant } = await res.json();
+
+    const waitCount = Math.max(0, currentTicketNumber - currentCall);
+    mostrarEspera(waitCount);
+
+    if (currentCall !== currentTicketNumber) {
+      mostrarStatus(`Chamando: ${currentCall}`);
     } else {
-      mostrarStatus(`É a sua vez! (${attendant})`)
+      mostrarStatus(`É a sua vez! (${attendant})`);
       if (timestamp > lastEventTs) {
-        lastEventTs = timestamp
-        silenced = false
-        alertUser()
+        lastEventTs = timestamp;
+        silenced = false;
+        alertUser();
       }
     }
-  } catch {}
+  } catch {
+    // fail silently
+  }
 }
 
 function alertUser() {
-  btnSilence.hidden = false
-  const doAlert = () => {
-    if (silenced) return
-    alertSound.currentTime = 0
-    alertSound.play().catch(()=>{})
-    if (navigator.vibrate) navigator.vibrate([200,100,200])
-  }
-  doAlert()
-  alertInterval = setInterval(doAlert,5000)
+  btnSilence.hidden = false;
+  // dispara imediatamento
+  alertSound.currentTime = 0;
+  alertSound.play().catch(()=>{});
+  if (navigator.vibrate) navigator.vibrate([200,100,200]);
+
+  // e depois em intervalos
+  alertInterval = setInterval(() => {
+    if (silenced) return;
+    alertSound.currentTime = 0;
+    alertSound.play().catch(()=>{});
+    if (navigator.vibrate) navigator.vibrate([200,100,200]);
+  }, 5000);
 }
 
 async function desistirDaFila() {
-  btnToggle.disabled = true
-  const clientId     = localStorage.getItem(CLIENT_ID_KEY)
-  const ticketNumber = localStorage.getItem(TICKET_KEY)
+  btnToggle.disabled = true;
+  const clientId     = localStorage.getItem(CLIENT_ID_KEY);
+  const ticketNumber = localStorage.getItem(TICKET_KEY);
   if (clientId && ticketNumber) {
     await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({ clientId, ticketNumber })
-    })
+    });
   }
-  clearInterval(polling)
-  clearInterval(alertInterval)
-  silenced = true
-  btnSilence.hidden = true
+  clearInterval(polling);
+  clearInterval(alertInterval);
+  silenced = true;
+  btnSilence.hidden = true;
 
-  mostrarStatus('Você saiu da fila.')
-  mostrarTicket('–')
+  currentTicketNumber = null;
+  mostrarStatus('Você saiu da fila.');
+  mostrarTicket('–');
+  mostrarEspera('–');
 
-  localStorage.removeItem(TICKET_KEY)
-  localStorage.removeItem(CLIENT_ID_KEY)
-  localStorage.removeItem(NEEDS_JOIN)
+  localStorage.removeItem(TICKET_KEY);
+  localStorage.removeItem(CLIENT_ID_KEY);
+  localStorage.removeItem(NEEDS_JOIN);
 
-  btnToggle.textContent = 'Entrar na fila'
-  btnToggle.classList.replace('cancel','enter')
-  btnToggle.disabled = false
+  btnToggle.textContent = 'Entrar na fila';
+  btnToggle.classList.replace('cancel','enter');
+  btnToggle.disabled = false;
 }
 
-btnStart.addEventListener('click',() => entrarNaFila())
-btnSilence.addEventListener('click',() => {
-  silenced = true
-  clearInterval(alertInterval)
-  alertSound.pause()
-  alertSound.currentTime = 0
-  if (navigator.vibrate) navigator.vibrate(0)
-  btnSilence.hidden = true
-})
-btnToggle.addEventListener('click',() => {
-  const active = Boolean(localStorage.getItem(TICKET_KEY))
-  active ? desistirDaFila() : entrarNaFila()
-})
+btnStart.addEventListener('click', () => entrarNaFila());
+btnSilence.addEventListener('click', () => {
+  silenced = true;
+  clearInterval(alertInterval);
+  alertSound.pause();
+  alertSound.currentTime = 0;
+  if (navigator.vibrate) navigator.vibrate(0);
+  btnSilence.hidden = true;
+});
+btnToggle.addEventListener('click', () => {
+  const active = currentTicketNumber !== null;
+  active ? desistirDaFila() : entrarNaFila();
+});
 
-window.addEventListener('offline',() => mostrarStatus('Sem conexão'))
-window.addEventListener('online',() => {
-  mostrarStatus('Conectado')
-  if (localStorage.getItem(NEEDS_JOIN)) entrarNaFila()
-})
-window.addEventListener('beforeunload',e => {
-  if (localStorage.getItem(TICKET_KEY)) {
-    const msg = 'Se você sair ou atualizar, perderá sua senha atual. Tem certeza?'
-    e.returnValue = msg
-    return msg
+window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
+window.addEventListener('online', () => {
+  mostrarStatus('Conectado');
+  if (localStorage.getItem(NEEDS_JOIN)) entrarNaFila();
+});
+window.addEventListener('beforeunload', e => {
+  if (currentTicketNumber !== null) {
+    const msg = 'Se você sair ou atualizar, perderá sua senha atual. Tem certeza?';
+    e.returnValue = msg;
+    return msg;
   }
-})
+});
 
-document.addEventListener('DOMContentLoaded',bootstrap)
+document.addEventListener('DOMContentLoaded', bootstrap);
