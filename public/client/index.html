@@ -7,25 +7,38 @@
   <link rel="stylesheet" href="css/client.css"/>
 </head>
 <body>
-  
-  <div class="client-header">
-  <div class="logo"></div>
-  <div id="company-name" class="company-name">–</div>
-  </div>
+  <div class="client-app">
+    <header class="client-header">
+      <div class="logo">SanNext</div>
+      <div id="company-name" class="company-name">–</div>
+    </header>
 
-  <div class="container">
-    <h1>SanNext</h1>
-    <p>Seu número:</p>
-    <div id="ticket" class="ticket">–</div>
-    <div id="status" class="status">Aguardando chamada...</div>
-    <button id="btn-cancel" class="btn-cancel" disabled>Desistir da fila</button>
-    <button id="btn-silence" class="btn-silence" hidden>Silenciar alerta</button>
-    <audio id="alert-sound" preload="auto" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
-  </div>
+    <main class="client-main">
+      <section class="ticket-display">
+        <h2 class="ticket-label">Seu número</h2>
+        <div id="ticket" class="ticket">–</div>
+        <p id="status" class="status">Aguardando chamada...</p>
+      </section>
 
-  <!-- Overlay inicial para destravar áudio/vibração/notificações -->
-  <div id="overlay">
-    <button id="btn-start">Toque para ativar alertas</button>
+      <section class="client-actions">
+        <button id="btn-cancel" class="btn action-btn" disabled>Desistir da fila</button>
+        <button id="btn-silence" class="btn action-btn btn-silence hidden">
+          <!-- Sino riscado -->
+          <svg class="icon icon-silence" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M14.707 10.707L19 6m0 0l-2.5-2.5M19 6l-2.5 2.5M5 19h14M12 5a5 5 0 00-5 5v3l-2 2v1h14v-1l-2-2v-3a5 5 0 00-5-5z"
+              stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none"/>
+          </svg>
+          <span>Silenciar</span>
+        </button>
+      </section>
+
+      <audio id="alert-sound" preload="auto" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+    </main>
+
+    <div id="overlay" class="overlay">
+      <button id="btn-start" class="btn start-btn">Toque para ativar alertas</button>
+    </div>
   </div>
 
   <script src="js/client.js"></script>
