@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderQRCode(tId) {
     qrContainer.innerHTML = '';
     qrOverlayContent.innerHTML = '';
-    const urlCliente = `${location.origin}/client/?t=${tId}`;
+    const urlCliente = `${location.origin}/client/?t=${tId}&empresa=${encodeURIComponent(cfg.empresa)}`;
     new QRCode(qrContainer, { text: urlCliente, width: 128, height: 128 });
     new QRCode(qrOverlayContent, { text: urlCliente, width: 256, height: 256 });
     qrContainer.style.cursor = 'pointer';
