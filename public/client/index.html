@@ -7,26 +7,34 @@
   <link rel="stylesheet" href="css/client.css"/>
 </head>
 <body>
-  <div class="container">
-    <h1>SanNext</h1>
-    <p>Seu número:</p>
-    <div id="ticket" class="ticket">–</div>
-    <div id="status" class="status">Aguardando chamada...</div>
-    <!-- Botão de toggle: Entrar / Desistir -->
-    <button id="btn-cancel" class="btn-cancel enter" disabled>
+  <header class="client-header">
+    <h1 class="logo-text">SanNext</h1>
+  </header>
+
+  <main class="client-main">
+    <div class="ticket-card" role="status" aria-live="polite">
+      <div id="ticket" class="ticket-number">–</div>
+      <div id="status" class="ticket-status">Aguardando chamada…</div>
+    </div>
+
+    <button id="btn-cancel" class="btn-toggle enter" disabled>
       Entrar na fila
     </button>
-    <button id="btn-silence" class="btn-silence" hidden>Silenciar alerta</button>
+    <button id="btn-silence" class="btn-silence" hidden aria-label="Silenciar alerta">
+      🔕 Silenciar
+    </button>
+
     <audio
       id="alert-sound"
       preload="auto"
-      src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
-    </audio>
-  </div>
+      src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+    ></audio>
+  </main>
 
-  <!-- Overlay inicial para destravar áudio/vibração/notificações -->
-  <div id="overlay">
-    <button id="btn-start">Toque para entrar na fila</button>
+  <div id="overlay" class="overlay">
+    <button id="btn-start" class="btn-primary">
+      Toque para entrar na fila
+    </button>
   </div>
 
   <script src="js/client.js"></script>
