@@ -1,21 +1,26 @@
-import { Redis } from "@upstash/redis";
+// functions/cancelados.js
+import { Redis } from '@upstash/redis'
 
-export async function handler(event) {
-  const url      = new URL(event.rawUrl);
-  const tenantId = url.searchParams.get("t");
-  if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN
+})
+
+export const handler = async (event) => {
+  const { t: token } = event.queryStringParameters
+
+  // Lê todos os cancelados (membro = ticket, score = timestamp)
+  const entries = await redis.zrevrange(`cancelados:${token}`, 0, -1, { withScores: true })
+  const cancelled = []
+  for (let i = 0; i < entries.length; i += 2) {
+    cancelled.push({
+      ticket: entries[i],
+      ts: Number(entries[i + 1])
+    })
   }
-
-  const redis  = Redis.fromEnv();
-  const prefix = `tenant:${tenantId}:`;
-
-  // Últimos 50 cancelamentos
-  const raw = await redis.lrange(prefix + "log:cancelled", 0, 49);
-  const list = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ cancelled: list }),
-  };
+    body: JSON.stringify({ cancelled })
+  }
 }
