@@ -1,0 +1,131 @@
+/* public/client/css/client.css */
+
+/* Variáveis de tema */
+:root {
+  --primary: #005f8c;
+  --accent:  #f5a623;
+  --bg:      #ffffff;
+  --text:    #333333;
+  --muted:   #777777;
+  --danger:  #d0021b;
+  --radius:  8px;
+  --font:    'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Blink animation */
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75%     { opacity: 0; }
+}
+.blink {
+  animation: blink 1s linear infinite;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+h1 {
+  color: var(--primary);
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.ticket {
+  font-size: 5rem;
+  font-weight: bold;
+  color: var(--text);
+  margin: 1rem 0;
+}
+
+.status {
+  font-size: 1.125rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  min-height: 1.5em;
+}
+
+button {
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel {
+  background: var(--danger);
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+.btn-cancel:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+.btn-silence {
+  background: var(--muted);
+  color: #fff;
+  margin-bottom: 1rem;
+}
+.btn-silence:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+/* Overlay de desbloqueio */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.97);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10;
+}
+#btn-start {
+  width: auto;
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+}
+
+/* Client header (empresa) */
+.client-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+.company-name {
+  font-size: 1.25rem;
+  color: var(--primary);
+  margin: 0.25rem 0 1rem;
+  font-weight: 500;
+}
