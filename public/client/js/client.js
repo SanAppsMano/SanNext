@@ -1,99 +1,44 @@
-// public/client/js/client.js
+// Captura params da URL
+const urlParams   = new URL(location).searchParams;
+const tenantId    = urlParams.get("t");
+const empresa     = urlParams.get("empresa") || null;
 
-// Captura o tenantId da URL
-const urlParams = new URL(location).searchParams;
-const tenantId  = urlParams.get("t");
+// Elementos do DOM
+const ticketEl    = document.getElementById("ticket");
+const statusEl    = document.getElementById("status");
+const btnCancel   = document.getElementById("btn-cancel");
+const btnSilence  = document.getElementById("btn-silence");
+const btnStart    = document.getElementById("btn-start");
+const overlay     = document.getElementById("overlay");
+const alertSound  = document.getElementById("alert-sound");
+const companyEl   = document.getElementById("company-name");
 
-// pega também o nome da empresa
-const empresa = urlParams.get("empresa");
-if (empresa) {
-  // cria o header se ainda não existir
-  const companyEl = document.getElementById("company-name");
-  if (companyEl) companyEl.textContent = decodeURIComponent(empresa);
+let clientId, ticketNumber, polling, alertInterval;
+
+// Exibe nome da empresa (se fornecido)
+if (empresa && companyEl) {
+  companyEl.textContent = decodeURIComponent(empresa);
 }
 
-// elementos
-const ticketEl   = document.getElementById("ticket");
-const statusEl   = document.getElementById("status");
-const btnCancel  = document.getElementById("btn-cancel");
-const btnSilence = document.getElementById("btn-silence");
-const btnStart   = document.getElementById("btn-start");
-const overlay    = document.getElementById("overlay");
-const alertSound = document.getElementById("alert-sound");
-
-let clientId, ticketNumber;
-let polling, alertInterval;
-let lastEventTs = 0;
-let silenced   = false;
-
+// Primeiro clique: destrava áudio/vibração/notificações
 btnStart.addEventListener("click", () => {
-  // som/vibração de teste
-  alertSound.play().then(() => alertSound.pause()).catch(()=>{});
-  if (navigator.vibrate) navigator.vibrate(1);
-  if ("Notification" in window) Notification.requestPermission();
-  overlay.remove();
-  btnCancel.disabled = false;
-  getTicket();
-  polling = setInterval(checkStatus, 2000);
+  alertSound.play().catch(()=>{}); // apenas para destravar áudio
+  overlay.classList.add("hidden");
+  initQueue(); // inicia conexões
 });
 
-async function getTicket() {
-  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
-  const data = await res.json();
-  clientId     = data.clientId;
-  ticketNumber = data.ticketNumber;
-  ticketEl.textContent  = ticketNumber;
-  statusEl.textContent  = "Aguardando chamada...";
-}
-
-async function checkStatus() {
-  if (!ticketNumber) return;
-  const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
-  const { currentCall, timestamp, attendant } = await res.json();
-
-  if (currentCall !== ticketNumber) {
-    statusEl.textContent = `Chamando: ${currentCall} (${attendant})`;
-    btnCancel.disabled = false;
-    statusEl.classList.remove("blink");
-    return;
-  }
-
-  statusEl.textContent = `É a sua vez! (Atendente: ${attendant})`;
-  statusEl.classList.add("blink");
-  btnCancel.disabled = true;
-
-  if (timestamp > lastEventTs) {
-    silenced    = false;
-    lastEventTs = timestamp;
-    alertUser();
-  }
-}
-
-function alertUser() {
-  btnSilence.hidden = false;
-  const doAlert = () => {
-    if (silenced) return;
-    alertSound.currentTime = 0;
-    alertSound.play().catch(()=>{});
-    if (navigator.vibrate) navigator.vibrate([200,100,200]);
-  };
-  doAlert();
-  alertInterval = setInterval(doAlert, 5000);
-}
-
+// Toggle silenciar
 btnSilence.addEventListener("click", () => {
-  silenced = true;
-  clearInterval(alertInterval);
-  alertSound.pause();
-  alertSound.currentTime = 0;
-  if (navigator.vibrate) navigator.vibrate(0);
-  btnSilence.hidden = true;
+  alertSound.muted = !alertSound.muted;
+  btnSilence.classList.toggle("active", alertSound.muted);
 });
 
+// Desistir da fila
 btnCancel.addEventListener("click", async () => {
   btnCancel.disabled = true;
-  statusEl.textContent = "Cancelando...";
+  statusEl.textContent = "Cancelando…";
   clearInterval(alertInterval);
+  clearInterval(polling);
 
   await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
     method: "POST",
@@ -101,8 +46,45 @@ btnCancel.addEventListener("click", async () => {
     body: JSON.stringify({ clientId })
   });
 
-  clearInterval(polling);
   statusEl.textContent = "Você saiu da fila.";
-  ticketEl.textContent = "–";
+  ticketEl.textContent  = "–";
   statusEl.classList.remove("blink");
 });
+
+// Função principal: conecta ao servidor e fica de olho no seu número
+function initQueue() {
+  // exemplo de subscribe via WebSocket ou polling...
+  // você pode manter aqui seu código original de subscribe/polling
+  // quando receber { ticket, clientId }, faça:
+  //   clientId    = data.clientId;
+  //   ticketNumber= data.ticket;
+  //   ticketEl.textContent = ticketNumber;
+  //   btnCancel.disabled = false;
+  //
+  // e quando alguém chamar você:
+  //   statusEl.textContent = "É a sua vez!";
+  //   statusEl.classList.add("blink");
+  //   tocarAlerta();
+  //
+  // abaixo um pseudocódigo de polling:
+
+  polling = setInterval(async () => {
+    const res = await fetch(`/.netlify/functions/status?t=${tenantId}&client=${clientId}`);
+    const data = await res.json();
+    if (data.called && !alertInterval) {
+      statusEl.textContent = "É a sua vez!";
+      statusEl.classList.add("blink");
+      tocarAlerta();
+    }
+  }, 2000);
+}
+
+// Dispara alerta sonoro em loop até silenciar
+function tocarAlerta() {
+  alertInterval = setInterval(() => {
+    if (!alertSound.muted) {
+      alertSound.currentTime = 0;
+      alertSound.play().catch(()=>{});
+    }
+  }, 5000);
+}
