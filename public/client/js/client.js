@@ -35,7 +35,7 @@ function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 function mostrarEspera(n) { waitingEl.textContent = `Em espera: ${n}`; }
 
-// Volta ao estado inicial completo, com overlay
+// Volta ao estado inicial completo, com overlay ativo e botão habilitado
 function resetToInitialState(message = 'Fila reiniciada. Toque para entrar na fila.') {
   clearInterval(polling);
   clearInterval(alertInterval);
@@ -51,29 +51,31 @@ function resetToInitialState(message = 'Fila reiniciada. Toque para entrar na fi
   localStorage.removeItem(CLIENT_ID_KEY);
   localStorage.removeItem(NEEDS_JOIN);
 
-  // restaura overlay e botões
+  // mostra e habilita o overlay de início
   overlay.style.display = 'flex';
-  btnStart.hidden = false;
+  btnStart.hidden       = false;
+  btnStart.disabled     = false;
 
-  btnToggle.hidden = true;       // escondemos o toggle até entrar de novo
-  btnSilence.hidden = true;
+  // esconde o toggle de desistir
+  btnToggle.hidden     = true;
+  btnSilence.hidden    = true;
 }
 
 function bootstrap() {
   const ticket = localStorage.getItem(TICKET_KEY);
   const client = localStorage.getItem(CLIENT_ID_KEY);
   if (ticket && client) {
-    // já entrou antes e não houve reset
+    // usuário já entrou e ainda não resetou
     currentTicketNumber = Number(ticket);
     mostrarTicket(ticket);
     mostrarStatus('Aguardando chamada…');
     mostrarEspera('–');
-    btnToggle.textContent = 'Desistir da fila';
+    btnToggle.textContent     = 'Desistir da fila';
     btnToggle.classList.replace('enter','cancel');
-    btnToggle.disabled = false;
-    btnToggle.hidden = false;
-    btnSilence.hidden = true;
-    overlay.style.display = 'none';
+    btnToggle.disabled        = false;
+    btnToggle.hidden          = false;
+    btnSilence.hidden         = true;
+    overlay.style.display     = 'none';
     polling = setInterval(checkStatus, 2000);
   } else {
     // estado inicial
@@ -93,12 +95,13 @@ async function entrarNaFila() {
 
     mostrarTicket(ticketNumber);
     mostrarStatus('Aguardando chamada…');
-    btnToggle.textContent = 'Desistir da fila';
+    btnToggle.textContent     = 'Desistir da fila';
     btnToggle.classList.replace('enter','cancel');
-    btnToggle.disabled = false;
-    btnToggle.hidden = false;
-    btnSilence.hidden = true;
-    overlay.style.display = 'none';
+    btnToggle.disabled        = false;
+    btnToggle.hidden          = false;
+    btnSilence.hidden         = true;
+    overlay.style.display     = 'none';
+
     polling = setInterval(checkStatus, 2000);
   } catch {
     mostrarStatus('Erro ao entrar. Tente novamente.');
@@ -108,12 +111,11 @@ async function entrarNaFila() {
 
 async function checkStatus() {
   if (currentTicketNumber === null) return;
-
   try {
     const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
     const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
 
-    // Detecta reset no servidor
+    // Se o servidor resetou a fila, volta ao estado inicial
     if (ticketCounter < currentTicketNumber) {
       resetToInitialState();
       return;
@@ -134,19 +136,19 @@ async function checkStatus() {
       }
     }
   } catch {
-    // silencioso
+    /* silencioso */
   }
 }
 
 function alertUser() {
   btnSilence.hidden = false;
   alertSound.currentTime = 0;
-  alertSound.play().catch(()=>{});
+  alertSound.play().catch(() => {});
   if (navigator.vibrate) navigator.vibrate([200,100,200]);
   alertInterval = setInterval(() => {
     if (silenced) return;
     alertSound.currentTime = 0;
-    alertSound.play().catch(()=>{});
+    alertSound.play().catch(() => {});
     if (navigator.vibrate) navigator.vibrate([200,100,200]);
   }, 5000);
 }
@@ -165,8 +167,8 @@ async function desistirDaFila() {
   resetToInitialState('Você saiu da fila. Toque para entrar novamente.');
 }
 
+// Event listeners
 btnStart.addEventListener('click', entrarNaFila);
-
 btnSilence.addEventListener('click', () => {
   silenced = true;
   clearInterval(alertInterval);
@@ -175,15 +177,12 @@ btnSilence.addEventListener('click', () => {
   if (navigator.vibrate) navigator.vibrate(0);
   btnSilence.hidden = true;
 });
-
 btnToggle.addEventListener('click', () => {
-  if (currentTicketNumber !== null) {
-    desistirDaFila();
-  }
+  if (currentTicketNumber !== null) desistirDaFila();
 });
 
-window.addEventListener('offline',  () => mostrarStatus('Sem conexão'));
-window.addEventListener('online',   () => mostrarStatus('Conectado'));
+window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
+window.addEventListener('online', () => mostrarStatus('Conectado'));
 
 window.addEventListener('beforeunload', e => {
   if (currentTicketNumber !== null) {
