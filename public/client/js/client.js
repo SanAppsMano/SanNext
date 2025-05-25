@@ -1,56 +1,50 @@
 // public/js/client.js
 
-const TICKET_KEY    = 'suaVez_ticket';
-const NEEDS_JOIN    = 'suaVez_needsJoin';
-const CLIENT_ID_KEY = 'suaVez_clientId';
+const TICKET_KEY    = 'sannext_ticket';
+const NEEDS_JOIN    = 'sannext_needsJoin';
+const CLIENT_ID_KEY = 'sannext_clientId';
 
-// Captura tenantId da URL
 const urlParams  = new URL(location).searchParams;
 const tenantId   = urlParams.get('t');
 
-// Elementos
-const ticketEl   = document.getElementById('ticket');
-const statusEl   = document.getElementById('status');
-const btnSilence = document.getElementById('btn-silence');
-const btnToggle  = document.getElementById('btn-cancel');
-const btnStart   = document.getElementById('btn-start');
-const overlay    = document.getElementById('overlay');
-const alertSound = document.getElementById('alert-sound');
+const ticketEl    = document.getElementById('ticket');
+const statusEl    = document.getElementById('status');
+const btnSilence  = document.getElementById('btn-silence');
+const btnToggle   = document.getElementById('btn-cancel');
+const btnStart    = document.getElementById('btn-start');
+const overlay     = document.getElementById('overlay');
+const alertSound  = document.getElementById('alert-sound');
 
 let polling, alertInterval, lastEventTs = 0, silenced = false;
 
-// Busca novo ticket
 async function fetchNovaSenha() {
   const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
   if (!res.ok) throw new Error('Erro ao obter senha');
   return res.json(); // { clientId, ticketNumber }
 }
 
-// Atualiza UI
 function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 
-// Inicialização
 function bootstrap() {
   const ticket = localStorage.getItem(TICKET_KEY);
   const client = localStorage.getItem(CLIENT_ID_KEY);
   if (ticket && client) {
     mostrarTicket(ticket);
-    mostrarStatus('Aguardando chamada...');
+    mostrarStatus('Aguardando chamada…');
     btnToggle.textContent = 'Desistir da fila';
-    btnToggle.classList.replace('enter', 'cancel');
+    btnToggle.classList.replace('enter','cancel');
     btnToggle.disabled = false;
     btnStart.hidden = true;
     overlay.remove();
     polling = setInterval(checkStatus, 2000);
   } else {
     btnToggle.textContent = 'Entrar na fila';
-    btnToggle.classList.replace('cancel', 'enter');
+    btnToggle.classList.replace('cancel','enter');
     btnToggle.disabled = true;
   }
 }
 
-// Entrar na fila
 async function entrarNaFila() {
   btnToggle.disabled = true;
   localStorage.removeItem(TICKET_KEY);
@@ -64,19 +58,18 @@ async function entrarNaFila() {
     localStorage.removeItem(NEEDS_JOIN);
 
     mostrarTicket(ticketNumber);
-    mostrarStatus('Aguardando chamada...');
+    mostrarStatus('Aguardando chamada…');
     btnToggle.textContent = 'Desistir da fila';
-    btnToggle.classList.replace('enter', 'cancel');
+    btnToggle.classList.replace('enter','cancel');
     btnToggle.disabled = false;
     btnStart.hidden = true;
     overlay.remove();
     polling = setInterval(checkStatus, 2000);
   } catch {
-    // manter NEEDS_JOIN para retry
+    // mantem NEEDS_JOIN para retry
   }
 }
 
-// Checa status de chamada
 async function checkStatus() {
   const ticket = localStorage.getItem(TICKET_KEY);
   if (!ticket) return;
@@ -95,11 +88,10 @@ async function checkStatus() {
       }
     }
   } catch {
-    // falha silenciosa
+    // ignore
   }
 }
 
-// Dispara alerta sonoro e vibratório
 function alertUser() {
   btnSilence.hidden = false;
   const doAlert = () => {
@@ -112,16 +104,15 @@ function alertUser() {
   alertInterval = setInterval(doAlert, 5000);
 }
 
-// Desistir da fila (toggle)
 async function desistirDaFila() {
   btnToggle.disabled = true;
-  const clientId    = localStorage.getItem(CLIENT_ID_KEY);
-  const ticketNumber= localStorage.getItem(TICKET_KEY);
+  const clientId     = localStorage.getItem(CLIENT_ID_KEY);
+  const ticketNumber = localStorage.getItem(TICKET_KEY);
 
   if (clientId && ticketNumber) {
     await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ clientId, ticketNumber })
     });
   }
@@ -139,22 +130,17 @@ async function desistirDaFila() {
   localStorage.removeItem(NEEDS_JOIN);
 
   btnToggle.textContent = 'Entrar na fila';
-  btnToggle.classList.replace('cancel', 'enter');
+  btnToggle.classList.replace('cancel','enter');
   btnToggle.disabled = false;
 }
 
-// Eventos
 btnStart.addEventListener('click', () => entrarNaFila());
 
-// **Ação imediata de silenciar**
 btnSilence.addEventListener('click', () => {
   silenced = true;
-  // Interrompe alertInterval imediatamente
   clearInterval(alertInterval);
-  // Para o som e reseta posição
   alertSound.pause();
   alertSound.currentTime = 0;
-  // Cancela qualquer vibração em andamento
   if (navigator.vibrate) navigator.vibrate(0);
   btnSilence.hidden = true;
 });
@@ -164,7 +150,6 @@ btnToggle.addEventListener('click', () => {
   active ? desistirDaFila() : entrarNaFila();
 });
 
-// Rede e F5
 window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
 window.addEventListener('online',  () => {
   mostrarStatus('Conectado');
@@ -178,5 +163,4 @@ window.addEventListener('beforeunload', e => {
   }
 });
 
-// Inicia
 document.addEventListener('DOMContentLoaded', bootstrap);
