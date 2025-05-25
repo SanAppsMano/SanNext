@@ -7,54 +7,52 @@ const urlParams    = new URL(location).searchParams;
 const tenantId     = urlParams.get('t');
 const empresaName  = urlParams.get('empresa');
 
-const ticketEl   = document.getElementById('ticket');
-const statusEl   = document.getElementById('status');
-const waitingEl  = document.getElementById('waiting-count');
-const btnSilence = document.getElementById('btn-silence');
-const btnToggle  = document.getElementById('btn-cancel');
-const btnStart   = document.getElementById('btn-start');
-const overlay    = document.getElementById('overlay');
-const alertSound = document.getElementById('alert-sound');
-const companyEl  = document.getElementById('company-name');
+const ticketEl     = document.getElementById('ticket');
+const statusEl     = document.getElementById('status');
+const waitingEl    = document.getElementById('waiting-count');
+const btnSilence   = document.getElementById('btn-silence');
+const btnToggle    = document.getElementById('btn-cancel');
+const btnStart     = document.getElementById('btn-start');
+const overlay      = document.getElementById('overlay');
+const alertSound   = document.getElementById('alert-sound');
+const companyEl    = document.getElementById('company-name');
 
 let polling, alertInterval, lastEventTs = 0, silenced = false;
 let currentTicketNumber = null;
 
+// Se veio empresa via QR, exibe
 if (empresaName) {
   companyEl.textContent = empresaName;
 }
 
+// Fetch do próximo ticket no servidor
 async function fetchNovaSenha() {
   const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
   if (!res.ok) throw new Error('Erro ao obter senha');
   return res.json(); // { clientId, ticketNumber }
 }
 
+// Atualiza UI
 function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 function mostrarEspera(n) { waitingEl.textContent = `Em espera: ${n}`; }
 
-function clearAllAndReload(message) {
-  // Limpa timers
+// Limpa estado local e UI (sem recarregar nem overlay)
+function clearLocalState() {
   clearInterval(polling);
   clearInterval(alertInterval);
   silenced = true;
+  btnSilence.hidden = true;
 
-  // Limpa storage
   localStorage.removeItem(TICKET_KEY);
   localStorage.removeItem(CLIENT_ID_KEY);
 
-  // Exibe mensagem antes de recarregar
+  currentTicketNumber = null;
   mostrarTicket('–');
   mostrarEspera('–');
-  mostrarStatus(message);
-
-  // Aguarda 500ms e recarrega página
-  setTimeout(() => {
-    window.location.reload();
-  }, 500);
 }
 
+// Inicializa o app a partir do localStorage
 function bootstrap() {
   const ticket = localStorage.getItem(TICKET_KEY);
   const client = localStorage.getItem(CLIENT_ID_KEY);
@@ -65,13 +63,11 @@ function bootstrap() {
     mostrarEspera('–');
     btnToggle.textContent = 'Desistir da fila';
     btnToggle.classList.replace('enter','cancel');
-    btnToggle.hidden   = false;
     btnToggle.disabled = false;
-    btnSilence.hidden  = true;
+    btnToggle.hidden = false;
     overlay.style.display = 'none';
     polling = setInterval(checkStatus, 2000);
   } else {
-    // estado inicial
     mostrarTicket('–');
     mostrarEspera('–');
     mostrarStatus('Toque para entrar na fila');
@@ -81,6 +77,7 @@ function bootstrap() {
   }
 }
 
+// Fluxo de entrar na fila (busca do servidor)
 async function entrarNaFila() {
   btnStart.disabled = true;
   mostrarStatus('Solicitando número…');
@@ -95,10 +92,11 @@ async function entrarNaFila() {
     mostrarEspera('–');
     btnToggle.textContent = 'Desistir da fila';
     btnToggle.classList.replace('enter','cancel');
-    btnToggle.hidden   = false;
     btnToggle.disabled = false;
+    btnToggle.hidden   = false;
     btnSilence.hidden  = true;
     overlay.style.display = 'none';
+
     polling = setInterval(checkStatus, 2000);
   } catch {
     mostrarStatus('Erro ao entrar. Tente novamente.');
@@ -106,22 +104,25 @@ async function entrarNaFila() {
   }
 }
 
+// Verifica status e detecta reset
 async function checkStatus() {
   if (currentTicketNumber === null) return;
   try {
     const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
     const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
 
-    // Se o servidor resetou (ticketCounter < seu número), limpa e recarrega
+    // 1) Detecta reset no servidor
     if (ticketCounter < currentTicketNumber) {
-      clearAllAndReload('Fila reiniciada. Recarregando…');
-      return;
+      // limpa local e já faz nova entrada automática
+      clearLocalState();
+      return entrarNaFila();
     }
 
-    // Atualiza “Em espera”
+    // 2) Atualiza “Em espera”
     const waitCount = Math.max(0, currentTicketNumber - currentCall);
     mostrarEspera(waitCount);
 
+    // 3) Atualiza status de chamada
     if (currentCall !== currentTicketNumber) {
       mostrarStatus(`Chamando: ${currentCall}`);
     } else {
@@ -133,10 +134,11 @@ async function checkStatus() {
       }
     }
   } catch {
-    // silencioso
+    // falha silenciosa
   }
 }
 
+// Alerta sonoro e vibratório
 function alertUser() {
   btnSilence.hidden = false;
   alertSound.currentTime = 0;
@@ -150,6 +152,7 @@ function alertUser() {
   }, 5000);
 }
 
+// Desistir da fila
 async function desistirDaFila() {
   btnToggle.disabled = true;
   const clientId     = localStorage.getItem(CLIENT_ID_KEY);
@@ -161,12 +164,13 @@ async function desistirDaFila() {
       body: JSON.stringify({ clientId, ticketNumber })
     });
   }
-  clearAllAndReload('Você saiu da fila. Recarregando…');
+  clearLocalState();
+  mostrarStatus('Você saiu da fila. Toque para entrar novamente.');
 }
 
-// Event listeners
+// Eventos
 btnStart.addEventListener('click', entrarNaFila);
-
+btnToggle.addEventListener('click', () => { if (currentTicketNumber) desistirDaFila() });
 btnSilence.addEventListener('click', () => {
   silenced = true;
   clearInterval(alertInterval);
@@ -174,10 +178,6 @@ btnSilence.addEventListener('click', () => {
   alertSound.currentTime = 0;
   if (navigator.vibrate) navigator.vibrate(0);
   btnSilence.hidden = true;
-});
-
-btnToggle.addEventListener('click', () => {
-  if (currentTicketNumber !== null) desistirDaFila();
 });
 
 window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
