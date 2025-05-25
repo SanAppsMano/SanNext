@@ -16,6 +16,8 @@
     <div class="ticket-card" role="status" aria-live="polite">
       <div id="ticket" class="ticket-number">–</div>
       <div id="status" class="ticket-status">Aguardando chamada…</div>
+      <!-- NOVO: linha de espera -->
+      <div id="waiting-count" class="waiting-count">Em espera: –</div>
     </div>
 
     <button id="btn-cancel" class="btn-toggle enter" disabled>
@@ -28,8 +30,8 @@
     <audio
       id="alert-sound"
       preload="auto"
-      src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
-    </audio>
+      src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+    ></audio>
   </main>
 
   <div id="overlay" class="overlay">
