@@ -1,29 +1,25 @@
 /* Reset básico */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Fonte padrão */
+/* Corpo */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #fafafa;
   color: #333;
 }
 
-/* Header mínimo */
+/* Header */
 .client-header {
   text-align: center;
   padding: 1rem 0;
   background: #005a9c;
 }
-.client-header .logo-text {
+.logo-text {
   font-size: 1.5rem;
   color: #fff;
   font-weight: 600;
 }
-.client-header .company-name {
+.company-name {
   font-size: 1rem;
   font-weight: 500;
   color: #eef5fb;
@@ -59,11 +55,6 @@ body {
   font-size: 1.25rem;
   color: #555;
 }
-.waiting-count {
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  color: #777;
-}
 
 /* Botão principal toggle */
 .btn-toggle {
@@ -78,22 +69,11 @@ body {
   margin-bottom: 1rem;
   width: 100%;
 }
-.btn-toggle.enter {
-  background-color: #005a9c;
-}
-.btn-toggle.enter:hover:not(:disabled) {
-  background-color: #004076;
-}
-.btn-toggle.cancel {
-  background-color: #e74c3c;
-}
-.btn-toggle.cancel:hover:not(:disabled) {
-  background-color: #c0392b;
-}
-.btn-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn-toggle.enter { background-color: #005a9c; }
+.btn-toggle.enter:hover:not(:disabled) { background-color: #004076; }
+.btn-toggle.cancel { background-color: #e74c3c; }
+.btn-toggle.cancel:hover:not(:disabled) { background-color: #c0392b; }
+.btn-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Botão silenciar */
 .btn-silence {
@@ -109,11 +89,9 @@ body {
 /* Overlay inicial */
 .overlay {
   position: fixed;
-  top:0; left:0; right:0; bottom:0;
+  top:0;left:0;right:0;bottom:0;
   background: rgba(0,0,0,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex;align-items:center;justify-content:center;
   z-index: 1000;
 }
 .btn-primary {
@@ -125,17 +103,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
 }
-.btn-primary:hover {
-  background-color: #004076;
-}
-
-/* Animação de piscar */
-.blink {
-  animation: blink-animation 1s steps(2, start) infinite;
-}
-@keyframes blink-animation {
-  to { visibility: hidden; }
-}
+.btn-primary:hover { background-color: #004076; }
 
 /* Responsividade */
 @media (max-width:400px) {
