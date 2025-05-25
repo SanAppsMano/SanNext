@@ -111,3 +111,11 @@ body {
   .ticket-number { font-size:3.5rem; }
   .btn-toggle { font-size:1.1rem; padding:0.75rem; }
 }
+/* … (todo o CSS anterior permanece) … */
+
+/* Novo: estilo de “Em espera” */
+.waiting-count {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: #777;
+}
