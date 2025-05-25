@@ -35,20 +35,24 @@ function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 function mostrarEspera(n) { waitingEl.textContent = `Em espera: ${n}`; }
 
-function clearState() {
+function clearState(message = 'Fila reiniciada. Clique em Entrar para novo número.') {
   clearInterval(polling);
   clearInterval(alertInterval);
   silenced = true;
   btnSilence.hidden = true;
+
+  currentTicketNumber = null;
   mostrarTicket('–');
   mostrarEspera('–');
+  mostrarStatus(message);
+
   btnToggle.classList.replace('cancel','enter');
   btnToggle.textContent = 'Entrar na fila';
-  currentTicketNumber = null;
+  btnToggle.disabled = false;
+
   localStorage.removeItem(TICKET_KEY);
   localStorage.removeItem(CLIENT_ID_KEY);
   localStorage.removeItem(NEEDS_JOIN);
-  btnToggle.disabled = false;
 }
 
 function bootstrap() {
@@ -65,8 +69,8 @@ function bootstrap() {
     overlay.remove();
     polling = setInterval(checkStatus, 2000);
   } else {
-    btnToggle.textContent = 'Entrar na fila';
     btnToggle.classList.replace('cancel','enter');
+    btnToggle.textContent = 'Entrar na fila';
     btnToggle.disabled = true;
     mostrarEspera('–');
   }
@@ -75,6 +79,7 @@ function bootstrap() {
 async function entrarNaFila() {
   btnToggle.disabled = true;
   btnToggle.textContent = 'Aguarde…';
+  mostrarStatus('Solicitando número…');
   try {
     const { clientId, ticketNumber } = await fetchNovaSenha();
     currentTicketNumber = ticketNumber;
@@ -103,12 +108,10 @@ async function checkStatus() {
     const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
     const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
 
-    // DETECÇÃO DE RESET: se o servidor resetou (ticketCounter < seu número antigo)
+    // Se servidor resetou a fila
     if (ticketCounter < currentTicketNumber) {
-      mostrarStatus('Fila resetada. Buscando novo número…');
       clearState();
-      // força entrar na fila de novo para pegar o próximo
-      return entrarNaFila();
+      return;
     }
 
     const waitCount = Math.max(0, currentTicketNumber - currentCall);
@@ -125,19 +128,19 @@ async function checkStatus() {
       }
     }
   } catch {
-    // falha silenciosa
+    // silêncio
   }
 }
 
 function alertUser() {
   btnSilence.hidden = false;
   alertSound.currentTime = 0;
-  alertSound.play().catch(() => {});
+  alertSound.play().catch(()=>{});
   if (navigator.vibrate) navigator.vibrate([200,100,200]);
   alertInterval = setInterval(() => {
     if (silenced) return;
     alertSound.currentTime = 0;
-    alertSound.play().catch(() => {});
+    alertSound.play().catch(()=>{});
     if (navigator.vibrate) navigator.vibrate([200,100,200]);
   }, 5000);
 }
@@ -154,7 +157,7 @@ async function desistirDaFila() {
     });
   }
   mostrarStatus('Você saiu da fila.');
-  clearState();
+  clearState('Você saiu da fila. Clique em Entrar para novo número.');
 }
 
 btnStart.addEventListener('click', () => entrarNaFila());
