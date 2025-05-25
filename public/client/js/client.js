@@ -4,48 +4,56 @@ const TICKET_KEY    = 'suaVez_ticket';
 const NEEDS_JOIN    = 'suaVez_needsJoin';
 const CLIENT_ID_KEY = 'suaVez_clientId';
 
-// URL params
+// Captura tenantId da URL
 const urlParams  = new URL(location).searchParams;
 const tenantId   = urlParams.get('t');
 
 // Elementos
-const ticketEl    = document.getElementById('ticket');
-const statusEl    = document.getElementById('status');
-const btnSilence  = document.getElementById('btn-silence');
-const btnToggle   = document.getElementById('btn-cancel');
-const btnStart    = document.getElementById('btn-start');
-const overlay     = document.getElementById('overlay');
-const alertSound  = document.getElementById('alert-sound');
+const ticketEl   = document.getElementById('ticket');
+const statusEl   = document.getElementById('status');
+const btnSilence = document.getElementById('btn-silence');
+const btnToggle  = document.getElementById('btn-cancel');
+const btnStart   = document.getElementById('btn-start');
+const overlay    = document.getElementById('overlay');
+const alertSound = document.getElementById('alert-sound');
 
 let polling, alertInterval, lastEventTs = 0, silenced = false;
 
-// Fetch de nova senha
+// Busca novo ticket
 async function fetchNovaSenha() {
   const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
   if (!res.ok) throw new Error('Erro ao obter senha');
   return res.json(); // { clientId, ticketNumber }
 }
 
-// Mostrar ticket e status
+// Atualiza UI
 function mostrarTicket(n) { ticketEl.textContent = n; }
 function mostrarStatus(t) { statusEl.textContent = t; }
 
-// Bootstrap inicial: reativa estado se já houver ticket
+// Inicialização: verifica storage
 function bootstrap() {
   const ticket = localStorage.getItem(TICKET_KEY);
   const client = localStorage.getItem(CLIENT_ID_KEY);
   if (ticket && client) {
     mostrarTicket(ticket);
     mostrarStatus('Aguardando chamada...');
-    btnToggle.textContent = 'Desistir da fila';
+    btnToggle.textContent = 'Desistir na fila';
+    btnToggle.classList.remove('enter');
+    btnToggle.classList.add('cancel');
     btnToggle.disabled = false;
     btnStart.hidden = true;
     overlay.remove();
     polling = setInterval(checkStatus, 2000);
+  } else {
+    // Estado inicial
+    btnToggle.textContent = 'Entrar na fila';
+    btnToggle.classList.remove('cancel');
+    btnToggle.classList.add('enter');
+    btnToggle.disabled = true;
   }
 }
 
-// Entrar na fila
+// Entra na fila (fetch + persist)
 async function entrarNaFila() {
   btnToggle.disabled = true;
   localStorage.removeItem(TICKET_KEY);
@@ -61,16 +69,17 @@ async function entrarNaFila() {
     mostrarTicket(ticketNumber);
     mostrarStatus('Aguardando chamada...');
     btnToggle.textContent = 'Desistir da fila';
+    btnToggle.classList.replace('enter', 'cancel');
     btnToggle.disabled = false;
     btnStart.hidden = true;
     overlay.remove();
     polling = setInterval(checkStatus, 2000);
   } catch {
-    // manter NEEDS_JOIN para retry ao reconectar
+    // manter NEEDS_JOIN para retry
   }
 }
 
-// Checar status de chamada
+// Checa status
 async function checkStatus() {
   const ticket = localStorage.getItem(TICKET_KEY);
   if (!ticket) return;
@@ -89,11 +98,11 @@ async function checkStatus() {
       }
     }
   } catch {
-    // ignorar falhas temporárias
+    // erro ignorado
   }
 }
 
-// Dispara alertas sonoro e vibratório
+// Alerta do usuário
 function alertUser() {
   btnSilence.hidden = false;
   const doAlert = () => {
@@ -106,7 +115,7 @@ function alertUser() {
   alertInterval = setInterval(doAlert, 5000);
 }
 
-// Desistir da fila ou toggle para entrar
+// Desistir da fila (toggle)
 async function desistirDaFila() {
   btnToggle.disabled = true;
   const clientId    = localStorage.getItem(CLIENT_ID_KEY);
@@ -133,33 +142,28 @@ async function desistirDaFila() {
   localStorage.removeItem(NEEDS_JOIN);
 
   btnToggle.textContent = 'Entrar na fila';
+  btnToggle.classList.replace('cancel', 'enter');
   btnToggle.disabled = false;
 }
 
-// Evento de start (overlay)
+// Eventos
 btnStart.addEventListener('click', () => entrarNaFila());
-
-// Silenciar alerta
 btnSilence.addEventListener('click', () => {
   silenced = true;
   clearInterval(alertInterval);
   btnSilence.hidden = true;
 });
-
-// Toggle Enter/Cancel
 btnToggle.addEventListener('click', () => {
-  const has = !!localStorage.getItem(TICKET_KEY);
-  has ? desistirDaFila() : entrarNaFila();
+  const active = Boolean(localStorage.getItem(TICKET_KEY));
+  active ? desistirDaFila() : entrarNaFila();
 });
 
-// Network status
+// Rede e F5
 window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
-window.addEventListener('online', () => {
+window.addEventListener('online',  () => {
   mostrarStatus('Conectado');
   if (localStorage.getItem(NEEDS_JOIN)) entrarNaFila();
 });
-
-// Confirmação antes de F5
 window.addEventListener('beforeunload', e => {
   if (localStorage.getItem(TICKET_KEY)) {
     const msg = 'Se você sair ou atualizar, perderá sua senha atual. Tem certeza?';
