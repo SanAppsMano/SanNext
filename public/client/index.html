@@ -12,8 +12,10 @@
     <p>Seu número:</p>
     <div id="ticket" class="ticket">–</div>
     <div id="status" class="status">Aguardando chamada...</div>
-    <!-- Agora este botão alterna entre Desistir/Entrar -->
-    <button id="btn-cancel" class="btn-cancel" disabled>Desistir da fila</button>
+    <!-- Botão de toggle: Entrar / Desistir -->
+    <button id="btn-cancel" class="btn-cancel enter" disabled>
+      Entrar na fila
+    </button>
     <button id="btn-silence" class="btn-silence" hidden>Silenciar alerta</button>
     <audio
       id="alert-sound"
