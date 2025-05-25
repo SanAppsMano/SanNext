@@ -103,11 +103,12 @@ async function checkStatus() {
     const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
     const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
 
-    // Se o monitor resetou, ticketCounter < seu número original:
+    // DETECÇÃO DE RESET: se o servidor resetou (ticketCounter < seu número antigo)
     if (ticketCounter < currentTicketNumber) {
-      mostrarStatus('Fila resetada. Entre novamente.');
+      mostrarStatus('Fila resetada. Buscando novo número…');
       clearState();
-      return;
+      // força entrar na fila de novo para pegar o próximo
+      return entrarNaFila();
     }
 
     const waitCount = Math.max(0, currentTicketNumber - currentCall);
@@ -172,7 +173,7 @@ btnToggle.addEventListener('click', () => {
   active ? desistirDaFila() : entrarNaFila();
 });
 
-window.addEventListener('offline',  () => mostrarStatus('Sem conexão'));
+window.addEventListener('offline', () => mostrarStatus('Sem conexão'));
 window.addEventListener('online', () => {
   mostrarStatus('Conectado');
   if (localStorage.getItem(NEEDS_JOIN)) entrarNaFila();
