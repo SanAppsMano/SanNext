@@ -27,6 +27,17 @@ let polling, alertInterval;
 let lastEventTs = 0;
 let silenced   = false;
 
+// AVISO AO RECARREGAR/FECHAR A PÁGINA
+window.addEventListener('beforeunload', function (e) {
+  // só perguntar se tiver um ticket válido e sem ter saído
+  if (ticketNumber && statusEl.textContent !== "Você saiu da fila.") {
+    const confirmationMessage = "Ao atualizar ou fechar a página você perderá seu número na fila. Deseja continuar?";
+    e.preventDefault();
+    e.returnValue = confirmationMessage;
+    return confirmationMessage;
+  }
+});
+
 btnStart.addEventListener("click", () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
