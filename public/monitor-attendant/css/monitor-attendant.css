@@ -334,3 +334,15 @@ body {
   color: #005a9c;
   border: none;
 }
+/* Texto que vai quicar atrás do QR expandido */
+.bouncing-name {
+  position: fixed;
+  top: 0;
+  left: 0;
+  font-size: 4rem;
+  font-weight: bold;
+  color: rgba(0,0,0,0.08);
+  pointer-events: none;
+  z-index: 1; /* abaixo do overlay de QR, que está em z-index:1000 */
+  white-space: nowrap;
+}
