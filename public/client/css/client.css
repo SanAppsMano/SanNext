@@ -1,6 +1,6 @@
 /* public/client/css/client.css */
 
-/* Variáveis de tema */
+/* === Variáveis de tema === */
 :root {
   --primary: #005f8c;
   --accent:  #f5a623;
@@ -12,7 +12,7 @@
   --font:    'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Blink animation */
+/* === Animações === */
 @keyframes blink {
   0%, 50%, 100% { opacity: 1; }
   25%, 75%     { opacity: 0; }
@@ -21,15 +21,18 @@
   animation: blink 1s linear infinite;
 }
 
+/* === Reset & Box sizing === */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* === Body & Layout === */
 body {
   font-family: var(--font);
   background: var(--bg);
+  color: var(--text);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -37,52 +40,55 @@ body {
   padding: 1rem;
 }
 
-/* Header */
+/* === Header === */
 .client-header {
   width: 100%;
   max-width: 360px;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 .logo {
-  /* você pode inserir um ícone como background-image aqui */
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary);
+  /* Espaço reservado para logomarca ou ícone */
+  height: 2rem;
   margin-bottom: 0.25rem;
 }
 .company-name {
-  font-size: 1.25rem;
-  color: var(--primary);
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-.app-name {
   font-size: 1.5rem;
-  color: var(--accent);
-  font-weight: bold;
+  color: var(--primary);
+  font-weight: 600;
 }
 
-/* Main container */
+/* === Main Container === */
 .container {
   width: 100%;
   max-width: 360px;
   text-align: center;
 }
 
+/* Label do App */
+.app-label {
+  font-size: 1.25rem;
+  color: var(--accent);
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+/* Texto “Seu número:” */
 .label {
   font-size: 1rem;
   color: var(--text);
   margin-bottom: 0.25rem;
 }
 
+/* Número do ticket */
 .ticket {
   font-size: 5rem;
   font-weight: bold;
   color: var(--text);
-  margin: 1rem 0;
+  margin: 0.5rem 0;
 }
 
+/* Status de chamada */
 .status {
   font-size: 1.125rem;
   color: var(--muted);
@@ -90,6 +96,7 @@ body {
   min-height: 1.5em;
 }
 
+/* === Botões === */
 button {
   width: 100%;
   font-size: 1rem;
@@ -115,12 +122,15 @@ button {
   color: #fff;
   margin-bottom: 1rem;
 }
+.btn-silence[hidden] {
+  display: none;
+}
 .btn-silence:disabled {
   background: #bbb;
   cursor: not-allowed;
 }
 
-/* Overlay de desbloqueio */
+/* === Overlay de desbloqueio de alertas === */
 #overlay {
   position: fixed;
   inset: 0;
