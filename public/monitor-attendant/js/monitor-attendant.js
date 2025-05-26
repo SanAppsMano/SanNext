@@ -100,17 +100,34 @@ document.addEventListener('DOMContentLoaded', () => {
   let ticketCounter = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
-  /** Renderiza o QR Code e configura interação */
-  function renderQRCode(tId) {
-    qrContainer.innerHTML = '';
-    qrOverlayContent.innerHTML = '';
-    const urlCliente = `${location.origin}/client/?t=${tId}&empresa=${encodeURIComponent(cfg.empresa)}`;
-    new QRCode(qrContainer, { text: urlCliente, width: 128, height: 128 });
-    new QRCode(qrOverlayContent, { text: urlCliente, width: 256, height: 256 });
-    qrContainer.style.cursor = 'pointer';
-    qrContainer.onclick = () => navigator.clipboard.writeText(urlCliente).then(() => qrOverlay.style.display = 'flex');
-    qrOverlay.onclick = e => { if (e.target === qrOverlay) qrOverlay.style.display = 'none'; };
-  }
+ /** Renderiza o QR Code e configura interação */
+function renderQRCode(tId) {
+  qrContainer.innerHTML = '';
+  qrOverlayContent.innerHTML = '';
+
+  const urlCliente = `${location.origin}/client/?t=${tId}&empresa=${encodeURIComponent(cfg.empresa)}`;
+  new QRCode(qrContainer,     { text: urlCliente, width: 128, height: 128 });
+  new QRCode(qrOverlayContent, { text: urlCliente, width: 256, height: 256 });
+
+  qrContainer.style.cursor = 'pointer';
+  qrContainer.onclick = () =>
+    navigator.clipboard.writeText(urlCliente).then(() => {
+      // exibe overlay do QR
+      qrOverlay.style.display = 'flex';
+      // inicia animação do nome da empresa quicando
+      startBouncingCompanyName(cfg.empresa);
+    });
+
+  qrOverlay.onclick = e => {
+    if (e.target === qrOverlay) {
+      qrOverlay.style.display = 'none';
+      // opcional: remover o elemento bouncing para limpar tela
+      const bounceEl = document.querySelector('.bouncing-name');
+      if (bounceEl) bounceEl.remove();
+    }
+  };
+}
+
   
   /**
  * Inicia o texto quicando com o nome da empresa
