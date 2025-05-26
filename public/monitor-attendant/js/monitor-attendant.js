@@ -111,6 +111,31 @@ document.addEventListener('DOMContentLoaded', () => {
     qrContainer.onclick = () => navigator.clipboard.writeText(urlCliente).then(() => qrOverlay.style.display = 'flex');
     qrOverlay.onclick = e => { if (e.target === qrOverlay) qrOverlay.style.display = 'none'; };
   }
+  
+  /**
+ * Inicia o texto quicando com o nome da empresa
+ */
+function startBouncingCompanyName(text) {
+  const el = document.createElement('div');
+  el.className = 'bouncing-name';
+  el.textContent = text;
+  document.body.appendChild(el);
+
+  let vx = 2 + Math.random() * 3;
+  let vy = 2 + Math.random() * 3;
+  let x = 0, y = 0;
+
+  function step() {
+    const maxX = window.innerWidth  - el.clientWidth;
+    const maxY = window.innerHeight - el.clientHeight;
+    x += vx; y += vy;
+    if (x < 0 || x > maxX) { vx = -vx; x = Math.max(0, Math.min(x, maxX)); }
+    if (y < 0 || y > maxY) { vy = -vy; y = Math.max(0, Math.min(y, maxY)); }
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 
   /** Atualiza chamada */
   function updateCall(num, attendantId) {
