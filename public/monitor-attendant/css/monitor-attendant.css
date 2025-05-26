@@ -341,8 +341,12 @@ body {
   left: 0;
   font-size: 4rem;
   font-weight: bold;
-  color: rgba(0,0,0,0.08);
+  color: #FFFFFF;           /* branco puro para máximo contraste */
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.6),
+    0 0 4px rgba(0, 0, 0, 0.6);
   pointer-events: none;
-  z-index: 1; /* abaixo do overlay de QR, que está em z-index:1000 */
+  z-index: 1;               /* abaixo do overlay de QR, que está em z-index:1000 */
   white-space: nowrap;
 }
+
