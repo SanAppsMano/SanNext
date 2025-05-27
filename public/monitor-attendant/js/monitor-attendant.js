@@ -330,5 +330,3 @@ function startBouncingCompanyName(text) {
       setTimeout(() => ripple.remove(), 600);
     });
   });
-
-});
