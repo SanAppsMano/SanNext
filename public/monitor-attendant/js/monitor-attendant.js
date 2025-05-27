@@ -311,3 +311,24 @@ function startBouncingCompanyName(text) {
     };
   })();
 });
+// ================================
+  // Feedback de clique: ripple effect
+  // ================================
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      ripple.classList.add('ripple');
+      this.appendChild(ripple);
+
+      const size = Math.max(this.clientWidth, this.clientHeight);
+      ripple.style.width = ripple.style.height = size + 'px';
+
+      const rect = this.getBoundingClientRect();
+      ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+      ripple.style.top  = (e.clientY - rect.top  - size/2) + 'px';
+
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+
+});
