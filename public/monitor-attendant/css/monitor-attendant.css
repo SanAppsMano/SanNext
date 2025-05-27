@@ -349,4 +349,36 @@ body {
   z-index: 1;               /* abaixo do overlay de QR, que está em z-index:1000 */
   white-space: nowrap;
 }
+/* =============================== */
+/* Ripple effect e feedback tátil  */
+/* =============================== */
+
+.btn {
+  position: relative;        /* necessário para posicionar o ripple */
+  overflow: hidden;          /* limita o ripple ao botão */
+  transition: transform 0.2s;/* suaviza o “apertar” */
+}
+
+.btn:active {
+  transform: scale(0.97);    /* feedback de pressão */
+}
+
+/* Elemento de onda */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple-effect 0.6s linear;
+}
+
+/* Animação de expansão e fade */
+@keyframes ripple-effect {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
 
