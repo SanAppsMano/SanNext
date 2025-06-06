@@ -15,8 +15,8 @@ export async function handler(event) {
     redis.lrange(prefix + "log:cancelled", 0, 49),
     redis.smembers(prefix + "cancelledSet")
   ]);
-  const list  = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
-  const nums  = cancelledSet.map(n => Number(n));
+  const list = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
+  const nums = cancelledSet.map(n => Number(n));
 
   return {
     statusCode: 200,

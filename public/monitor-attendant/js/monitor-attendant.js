@@ -99,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(qrOverlay);
 
   let currentCallNum = 0; // último número chamado
-  let callCounter    = 0; // contador usado em chamadas automáticas
   let ticketCounter  = 0;
   let cancelledNums  = [];
   let cancelledCount = 0;
@@ -172,12 +171,10 @@ function startBouncingCompanyName(text) {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
       const {
         currentCall,
-        callCounter: ccounter,
         ticketCounter: tc,
         cancelledCount: cc,
       } = await res.json();
       currentCallNum = currentCall;
-      callCounter    = ccounter;
       ticketCounter  = tc;
       cancelledCount = cc;
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
@@ -263,6 +260,8 @@ function startBouncingCompanyName(text) {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '');
+      fetchStatus(t);
+      fetchCancelled(t);
     };
     renderQRCode(t);
     fetchStatus(t);
