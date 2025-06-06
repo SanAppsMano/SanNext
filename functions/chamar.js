@@ -13,9 +13,23 @@ export async function handler(event) {
   const attendant = url.searchParams.get("id") || "";
 
   // Próximo a chamar
-  const next = paramNum
-    ? Number(paramNum)
-    : await redis.incr(prefix + "callCounter");
+  let next;
+  const counterKey = prefix + "callCounter";
+  if (paramNum) {
+    next = Number(paramNum);
+    const currentCounter = Number(await redis.get(counterKey) || 0);
+    if (next > currentCounter) {
+      await redis.set(counterKey, next);
+    }
+    await redis.srem(prefix + "cancelledSet", String(next));
+  } else {
+    next = await redis.incr(counterKey);
+    // Se automático, pular tickets cancelados
+    while (await redis.sismember(prefix + "cancelledSet", String(next))) {
+      await redis.srem(prefix + "cancelledSet", String(next));
+      next = await redis.incr(counterKey);
+    }
+  }
 
   const ts = Date.now();
   await redis.set(prefix + "currentCall", next);

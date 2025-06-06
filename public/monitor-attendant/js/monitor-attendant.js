@@ -71,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
   const cancelListEl   = document.getElementById('cancel-list');
+  const cancelThumbsEl = document.getElementById('cancel-thumbs');
+  const cancelCountEl  = document.getElementById('cancel-count');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
   const selectManual   = document.getElementById('manual-select');
@@ -96,8 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
-  let callCounter   = 0;
-  let ticketCounter = 0;
+  let currentCallNum = 0; // último número chamado
+  let ticketCounter  = 0;
+  let cancelledNums  = [];
+  let cancelledCount = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
  /** Renderiza o QR Code e configura interação */
@@ -156,7 +160,7 @@ function startBouncingCompanyName(text) {
 
   /** Atualiza chamada */
   function updateCall(num, attendantId) {
-    callCounter = num;
+    currentCallNum = num;
     currentCallEl.textContent = num > 0 ? num : '–';
     currentIdEl.textContent   = attendantId || '';
   }
@@ -165,12 +169,15 @@ function startBouncingCompanyName(text) {
   async function fetchStatus(t) {
     try {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
-      const { currentCall, ticketCounter: tc } = await res.json();
-      callCounter = currentCall;
-      ticketCounter = tc;
+      const {
+        currentCall,
+        ticketCounter: tc,
+        cancelledCount: cc,
+      } = await res.json();
+      currentCallNum = currentCall;
+      ticketCounter  = tc;
+      cancelledCount = cc;
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
-      waitingEl.textContent = Math.max(0, tc - currentCall);
-      updateManualOptions();
     } catch (e) {
       console.error(e);
     }
@@ -179,29 +186,48 @@ function startBouncingCompanyName(text) {
   /** Atualiza opções manuais */
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
-    for (let i = callCounter + 1; i <= ticketCounter; i++) {
+    for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
+      if (cancelledNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = i;
       selectManual.appendChild(opt);
     }
-    selectManual.disabled = callCounter + 1 > ticketCounter;
+    selectManual.disabled = selectManual.options.length === 1;
   }
 
   /** Busca cancelados e popula lista */
   async function fetchCancelled(t) {
     try {
       const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
-      const { cancelled = [] } = await res.json();
+      const { cancelled = [], numbers = [], count } = await res.json();
+      cancelledNums  = numbers.map(Number);
+      cancelledCount = count ?? cancelledNums.length;
+      cancelCountEl.textContent = cancelledCount;
+      cancelThumbsEl.innerHTML = '';
+      cancelledNums.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'cancel-thumb';
+        div.textContent = n;
+        cancelThumbsEl.appendChild(div);
+      });
+
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts }) => {
         const li = document.createElement('li');
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
+      const effCancelled = cancelledNums.filter(n => n > currentCallNum).length;
+      waitingEl.textContent = Math.max(0, ticketCounter - currentCallNum - effCancelled);
+      updateManualOptions();
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);
     }
+  }
+
+  function refreshAll(t) {
+    fetchStatus(t).then(() => fetchCancelled(t));
   }
 
   /** Inicializa botões e polling */
@@ -212,27 +238,29 @@ function startBouncingCompanyName(text) {
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
+      refreshAll(t);
     };
     btnRepeat.onclick = async () => {
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${callCounter}`)).json();
+      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
       updateCall(called, attendant);
+      refreshAll(t);
     };
     btnManual.onclick = async () => {
       const num = Number(selectManual.value);
       if (!num) return;
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
+      refreshAll(t);
     };
     btnReset.onclick = async () => {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '');
+      refreshAll(t);
     };
     renderQRCode(t);
-    fetchStatus(t);
-    fetchCancelled(t);
-    setInterval(() => fetchStatus(t), 5000);
-    setInterval(() => fetchCancelled(t), 5000);
+    refreshAll(t);
+    setInterval(() => refreshAll(t), 5000);
   }
 
   /** Exibe a interface principal após autenticação */
