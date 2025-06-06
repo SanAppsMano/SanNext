@@ -172,12 +172,28 @@ function startBouncingCompanyName(text) {
       const {
         currentCall,
         ticketCounter: tc,
-        cancelledCount: cc,
+        cancelledNumbers = [],
+        waiting = 0,
       } = await res.json();
-      currentCallNum = currentCall;
-      ticketCounter  = tc;
-      cancelledCount = cc;
+
+      currentCallNum  = currentCall;
+      ticketCounter   = tc;
+      cancelledNums   = cancelledNumbers.map(Number);
+      cancelledCount  = cancelledNums.length;
+
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
+      waitingEl.textContent     = waiting;
+
+      cancelCountEl.textContent = cancelledCount;
+      cancelThumbsEl.innerHTML  = '';
+      cancelledNums.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'cancel-thumb';
+        div.textContent = n;
+        cancelThumbsEl.appendChild(div);
+      });
+
+      updateManualOptions();
     } catch (e) {
       console.error(e);
     }
@@ -200,17 +216,7 @@ function startBouncingCompanyName(text) {
   async function fetchCancelled(t) {
     try {
       const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
-      const { cancelled = [], numbers = [], count } = await res.json();
-      cancelledNums  = numbers.map(Number);
-      cancelledCount = count ?? cancelledNums.length;
-      cancelCountEl.textContent = cancelledCount;
-      cancelThumbsEl.innerHTML = '';
-      cancelledNums.forEach(n => {
-        const div = document.createElement('div');
-        div.className = 'cancel-thumb';
-        div.textContent = n;
-        cancelThumbsEl.appendChild(div);
-      });
+      const { cancelled = [] } = await res.json();
 
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts }) => {
@@ -218,9 +224,6 @@ function startBouncingCompanyName(text) {
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
-      const effCancelled = cancelledNums.filter(n => n > currentCallNum).length;
-      waitingEl.textContent = Math.max(0, ticketCounter - currentCallNum - effCancelled);
-      updateManualOptions();
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);
     }

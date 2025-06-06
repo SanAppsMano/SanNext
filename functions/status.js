@@ -15,7 +15,11 @@ export async function handler(event) {
   const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
   const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
   const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
-  const cancelledCount= Number(await redis.scard(prefix + "cancelledSet")) || 0;
+  const cancelledSet  = await redis.smembers(prefix + "cancelledSet");
+  const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
+  const cancelledCount= cancelledNums.length;
+  const effCancelled  = cancelledNums.filter(n => n > currentCall).length;
+  const waiting       = Math.max(0, ticketCounter - currentCall - effCancelled);
 
   return {
     statusCode: 200,
@@ -26,6 +30,8 @@ export async function handler(event) {
       attendant,
       timestamp,
       cancelledCount,
+      cancelledNumbers: cancelledNums,
+      waiting,
     }),
   };
 }
