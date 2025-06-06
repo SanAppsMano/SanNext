@@ -17,7 +17,7 @@ export async function handler(event) {
 
   // Se havia ticket, marca-o como cancelado
   if (ticketNum) {
-    await redis.sadd(prefix + "cancelledSet", ticketNum);
+    await redis.sadd(prefix + "cancelledSet", String(ticketNum));
   }
 
   // Log de cancelamento

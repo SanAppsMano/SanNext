@@ -19,7 +19,7 @@ export async function handler(event) {
 
   // Se automático, pular tickets cancelados
   if (!paramNum) {
-    while (await redis.sismember(prefix + "cancelledSet", next)) {
+    while (await redis.sismember(prefix + "cancelledSet", String(next))) {
       next = await redis.incr(prefix + "callCounter");
     }
   }
