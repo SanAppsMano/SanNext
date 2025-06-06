@@ -168,11 +168,11 @@ function startBouncingCompanyName(text) {
   async function fetchStatus(t) {
     try {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
-      const { currentCall, ticketCounter: tc } = await res.json();
+      const { currentCall, ticketCounter: tc, cancelledCount: cc = cancelledNums.length } = await res.json();
       callCounter = currentCall;
       ticketCounter = tc;
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
-      waitingEl.textContent = Math.max(0, tc - currentCall);
+      waitingEl.textContent = Math.max(0, tc - currentCall - (cancelledNums.length || cc));
       updateManualOptions();
     } catch (e) {
       console.error(e);
@@ -213,6 +213,7 @@ function startBouncingCompanyName(text) {
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
+      waitingEl.textContent = Math.max(0, ticketCounter - callCounter - cancelledNums.length);
       updateManualOptions();
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);

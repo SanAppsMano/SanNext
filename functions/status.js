@@ -14,9 +14,16 @@ export async function handler(event) {
   const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
   const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
   const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
+  const cancelledCount= Number(await redis.scard(prefix + "cancelledSet")) || 0;
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ currentCall, ticketCounter, attendant, timestamp }),
+    body: JSON.stringify({
+      currentCall,
+      ticketCounter,
+      attendant,
+      timestamp,
+      cancelledCount,
+    }),
   };
 }
