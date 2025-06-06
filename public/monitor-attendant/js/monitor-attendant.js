@@ -98,9 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
-  let callCounter   = 0;
-  let ticketCounter = 0;
-  let cancelledNums = [];
+  let currentCallNum = 0; // último número chamado
+  let callCounter    = 0; // contador usado para chamadas automáticas
+  let ticketCounter  = 0;
+  let cancelledNums  = [];
+  let cancelledCount = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
  /** Renderiza o QR Code e configura interação */
@@ -159,7 +161,7 @@ function startBouncingCompanyName(text) {
 
   /** Atualiza chamada */
   function updateCall(num, attendantId) {
-    callCounter = num;
+    currentCallNum = num;
     currentCallEl.textContent = num > 0 ? num : '–';
     currentIdEl.textContent   = attendantId || '';
   }
@@ -168,11 +170,21 @@ function startBouncingCompanyName(text) {
   async function fetchStatus(t) {
     try {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
-      const { currentCall, ticketCounter: tc, cancelledCount: cc = cancelledNums.length } = await res.json();
-      callCounter = currentCall;
-      ticketCounter = tc;
+      const {
+        currentCall,
+        callCounter: ccounter,
+        ticketCounter: tc,
+        cancelledCount: cc,
+      } = await res.json();
+      currentCallNum = currentCall;
+      callCounter    = ccounter;
+      ticketCounter  = tc;
+      cancelledCount = cc;
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
-      waitingEl.textContent = Math.max(0, tc - currentCall - (cancelledNums.length || cc));
+      const effCancelled = cancelledNums.length
+        ? cancelledNums.filter(n => n > callCounter).length
+        : cc;
+      waitingEl.textContent = Math.max(0, tc - callCounter - effCancelled);
       updateManualOptions();
     } catch (e) {
       console.error(e);
@@ -197,8 +209,9 @@ function startBouncingCompanyName(text) {
     try {
       const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
       const { cancelled = [], numbers = [], count } = await res.json();
-      cancelledNums = numbers.map(Number);
-      cancelCountEl.textContent = count ?? cancelledNums.length;
+      cancelledNums  = numbers.map(Number);
+      cancelledCount = count ?? cancelledNums.length;
+      cancelCountEl.textContent = cancelledCount;
       cancelThumbsEl.innerHTML = '';
       cancelledNums.forEach(n => {
         const div = document.createElement('div');
@@ -213,7 +226,8 @@ function startBouncingCompanyName(text) {
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
-      waitingEl.textContent = Math.max(0, ticketCounter - callCounter - cancelledNums.length);
+      const effCancelled = cancelledNums.filter(n => n > callCounter).length;
+      waitingEl.textContent = Math.max(0, ticketCounter - callCounter - effCancelled);
       updateManualOptions();
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);
@@ -228,16 +242,22 @@ function startBouncingCompanyName(text) {
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
+      fetchStatus(t);
+      fetchCancelled(t);
     };
     btnRepeat.onclick = async () => {
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${callCounter}`)).json();
+      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
       updateCall(called, attendant);
+      fetchStatus(t);
+      fetchCancelled(t);
     };
     btnManual.onclick = async () => {
       const num = Number(selectManual.value);
       if (!num) return;
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
+      fetchStatus(t);
+      fetchCancelled(t);
     };
     btnReset.onclick = async () => {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
