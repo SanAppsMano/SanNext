@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
   const cancelListEl   = document.getElementById('cancel-list');
+  const cancelCountEl  = document.getElementById('cancel-count');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
   const selectManual   = document.getElementById('manual-select');
@@ -98,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let callCounter   = 0;
   let ticketCounter = 0;
+  let cancelledNums = [];
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
  /** Renderiza o QR Code e configura interação */
@@ -180,25 +182,29 @@ function startBouncingCompanyName(text) {
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
     for (let i = callCounter + 1; i <= ticketCounter; i++) {
+      if (cancelledNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = i;
       selectManual.appendChild(opt);
     }
-    selectManual.disabled = callCounter + 1 > ticketCounter;
+    selectManual.disabled = selectManual.options.length === 1;
   }
 
   /** Busca cancelados e popula lista */
   async function fetchCancelled(t) {
     try {
       const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
-      const { cancelled = [] } = await res.json();
+      const { cancelled = [], numbers = [], count } = await res.json();
+      cancelledNums = numbers.map(Number);
+      cancelCountEl.textContent = count ?? cancelledNums.length;
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts }) => {
         const li = document.createElement('li');
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
+      updateManualOptions();
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);
     }

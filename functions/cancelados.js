@@ -10,12 +10,16 @@ export async function handler(event) {
   const redis  = Redis.fromEnv();
   const prefix = `tenant:${tenantId}:`;
 
-  // Últimos 50 cancelamentos
-  const raw = await redis.lrange(prefix + "log:cancelled", 0, 49);
-  const list = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
+  // Últimos 50 cancelamentos e tickets cancelados atualmente
+  const [raw, cancelledSet] = await Promise.all([
+    redis.lrange(prefix + "log:cancelled", 0, 49),
+    redis.smembers(prefix + "cancelledSet")
+  ]);
+  const list  = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
+  const nums  = cancelledSet.map(n => Number(n));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ cancelled: list }),
+    body: JSON.stringify({ cancelled: list, numbers: nums, count: nums.length }),
   };
 }

@@ -15,6 +15,11 @@ export async function handler(event) {
   const ticketNum = await redis.get(prefix + `ticket:${clientId}`);
   await redis.del(prefix + `ticket:${clientId}`);
 
+  // Se havia ticket, marca-o como cancelado
+  if (ticketNum) {
+    await redis.sadd(prefix + "cancelledSet", ticketNum);
+  }
+
   // Log de cancelamento
   const ts = Date.now();
   await redis.lpush(

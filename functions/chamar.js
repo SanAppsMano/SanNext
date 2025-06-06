@@ -13,9 +13,16 @@ export async function handler(event) {
   const attendant = url.searchParams.get("id") || "";
 
   // Próximo a chamar
-  const next = paramNum
+  let next = paramNum
     ? Number(paramNum)
     : await redis.incr(prefix + "callCounter");
+
+  // Se automático, pular tickets cancelados
+  if (!paramNum) {
+    while (await redis.sismember(prefix + "cancelledSet", next)) {
+      next = await redis.incr(prefix + "callCounter");
+    }
+  }
 
   const ts = Date.now();
   await redis.set(prefix + "currentCall", next);
