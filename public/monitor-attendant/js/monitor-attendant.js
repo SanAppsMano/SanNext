@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
   const cancelListEl   = document.getElementById('cancel-list');
+  const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
@@ -198,6 +199,14 @@ function startBouncingCompanyName(text) {
       const { cancelled = [], numbers = [], count } = await res.json();
       cancelledNums = numbers.map(Number);
       cancelCountEl.textContent = count ?? cancelledNums.length;
+      cancelThumbsEl.innerHTML = '';
+      cancelledNums.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'cancel-thumb';
+        div.textContent = n;
+        cancelThumbsEl.appendChild(div);
+      });
+
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts }) => {
         const li = document.createElement('li');
