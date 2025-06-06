@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(qrOverlay);
 
   let currentCallNum = 0; // último número chamado
-  let callCounter    = 0; // contador usado para chamadas automáticas
+  let callCounter    = 0; // contador usado em chamadas automáticas
   let ticketCounter  = 0;
   let cancelledNums  = [];
   let cancelledCount = 0;
@@ -182,9 +182,9 @@ function startBouncingCompanyName(text) {
       cancelledCount = cc;
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       const effCancelled = cancelledNums.length
-        ? cancelledNums.filter(n => n > callCounter).length
-        : cc;
-      waitingEl.textContent = Math.max(0, tc - callCounter - effCancelled);
+        ? cancelledNums.filter(n => n > currentCall).length
+        : 0;
+      waitingEl.textContent = Math.max(0, tc - currentCall - effCancelled);
       updateManualOptions();
     } catch (e) {
       console.error(e);
@@ -194,7 +194,7 @@ function startBouncingCompanyName(text) {
   /** Atualiza opções manuais */
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
-    for (let i = callCounter + 1; i <= ticketCounter; i++) {
+    for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
       if (cancelledNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
@@ -226,8 +226,8 @@ function startBouncingCompanyName(text) {
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
         cancelListEl.appendChild(li);
       });
-      const effCancelled = cancelledNums.filter(n => n > callCounter).length;
-      waitingEl.textContent = Math.max(0, ticketCounter - callCounter - effCancelled);
+      const effCancelled = cancelledNums.filter(n => n > currentCallNum).length;
+      waitingEl.textContent = Math.max(0, ticketCounter - currentCallNum - effCancelled);
       updateManualOptions();
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);
