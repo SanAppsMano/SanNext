@@ -178,11 +178,6 @@ function startBouncingCompanyName(text) {
       ticketCounter  = tc;
       cancelledCount = cc;
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
-      const effCancelled = cancelledNums.length
-        ? cancelledNums.filter(n => n > currentCall).length
-        : 0;
-      waitingEl.textContent = Math.max(0, tc - currentCall - effCancelled);
-      updateManualOptions();
     } catch (e) {
       console.error(e);
     }
@@ -231,6 +226,10 @@ function startBouncingCompanyName(text) {
     }
   }
 
+  function refreshAll(t) {
+    fetchStatus(t).then(() => fetchCancelled(t));
+  }
+
   /** Inicializa botões e polling */
   function initApp(t) {
     btnNext.onclick = async () => {
@@ -239,35 +238,29 @@ function startBouncingCompanyName(text) {
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
-      fetchStatus(t);
-      fetchCancelled(t);
+      refreshAll(t);
     };
     btnRepeat.onclick = async () => {
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
       updateCall(called, attendant);
-      fetchStatus(t);
-      fetchCancelled(t);
+      refreshAll(t);
     };
     btnManual.onclick = async () => {
       const num = Number(selectManual.value);
       if (!num) return;
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
-      fetchStatus(t);
-      fetchCancelled(t);
+      refreshAll(t);
     };
     btnReset.onclick = async () => {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '');
-      fetchStatus(t);
-      fetchCancelled(t);
+      refreshAll(t);
     };
     renderQRCode(t);
-    fetchStatus(t);
-    fetchCancelled(t);
-    setInterval(() => fetchStatus(t), 5000);
-    setInterval(() => fetchCancelled(t), 5000);
+    refreshAll(t);
+    setInterval(() => refreshAll(t), 5000);
   }
 
   /** Exibe a interface principal após autenticação */
