@@ -223,8 +223,9 @@ function startBouncingCompanyName(text) {
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
     };
+    // Reset dos contadores do servidor volta para zero
     btnReset.onclick = async () => {
-      if (!confirm('Confirma resetar todos os tickets para 1?')) return;
+      if (!confirm('Confirma resetar todos os tickets para 0?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '');
     };
