@@ -329,7 +329,7 @@ body {
 
 /* Botão */
 #btn-delete-config {
-  /* ja herda .btn .btn-secondary, mas ajuste se quiser: */
+  /* já herda .btn .btn-secondary, mas ajuste se quiser: */
   background-color: #ffffff;
   color: #005a9c;
   border: none;
