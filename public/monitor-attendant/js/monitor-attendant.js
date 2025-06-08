@@ -76,6 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
   const btnReset       = document.getElementById('btn-reset');
+  const btnAttended    = document.getElementById('btn-attended');
+  const qrVideo        = document.getElementById('qr-video');
 
   // QR Interaction setup
   const qrContainer    = document.getElementById('qrcode');
@@ -99,6 +101,28 @@ document.addEventListener('DOMContentLoaded', () => {
   let callCounter   = 0;
   let ticketCounter = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
+
+  async function sendAttended(num, tok='') {
+    try {
+      await fetch(`/.netlify/functions/atendido?t=${token}&num=${num}&tok=${tok}`);
+      const li = document.createElement('li');
+      li.classList.add('attended','list-item');
+      li.innerHTML = `<span>${num}</span><span class="ts">${fmtTime(Date.now())}</span>`;
+      cancelListEl.prepend(li);
+      fetchStatus(token);
+    } catch(e){ console.error(e); }
+  }
+
+  function startScanner() {
+    if (!qrVideo) return;
+    const codeReader = new ZXing.BrowserQRCodeReader();
+    codeReader.decodeFromVideoDevice(null, qrVideo, (result, err) => {
+      if (result) {
+        const [num, tok] = result.text.split('|');
+        sendAttended(Number(num), tok);
+      }
+    });
+  }
 
  /** Renderiza o QR Code e configura interação */
 function renderQRCode(tId) {
@@ -228,6 +252,10 @@ function startBouncingCompanyName(text) {
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '');
     };
+    btnAttended.onclick = () => {
+      if (callCounter > 0) sendAttended(callCounter);
+    };
+    startScanner();
     renderQRCode(t);
     fetchStatus(t);
     fetchCancelled(t);

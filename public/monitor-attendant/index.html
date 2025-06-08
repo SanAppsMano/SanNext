@@ -87,6 +87,13 @@
       <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
     </section>
 
+    <!-- Painel de Atendimento -->
+    <section class="attend-panel">
+      <h2>Registrar Atendimento</h2>
+      <video id="qr-video" class="qr-video" playsinline></video>
+      <button id="btn-attended" class="btn btn-secondary">Atendido</button>
+    </section>
+
     <!-- Histórico de Cancelados -->
     <section class="history-panel">
       <h2>Cancelados</h2>
@@ -94,6 +101,7 @@
     </section>
   </main>
 
+  <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
   <script src="js/monitor-attendant.js"></script>
 </body>
 </html>

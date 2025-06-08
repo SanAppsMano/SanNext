@@ -21,6 +21,9 @@ const btnSilence = document.getElementById("btn-silence");
 const btnStart   = document.getElementById("btn-start");
 const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
+const qrContainer = document.getElementById("qr-container");
+
+let attendToken;
 
 let clientId, ticketNumber;
 let polling, alertInterval;
@@ -67,12 +70,19 @@ async function checkStatus() {
     statusEl.textContent = `Chamando: ${currentCall} (${attendant})`;
     btnCancel.disabled = false;
     statusEl.classList.remove("blink");
+    qrContainer.hidden = true;
     return;
   }
 
   statusEl.textContent = `É a sua vez! (Atendente: ${attendant})`;
   statusEl.classList.add("blink");
   btnCancel.disabled = true;
+  if (!attendToken) {
+    attendToken = crypto.randomUUID().split("-")[0];
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, { text: `${ticketNumber}|${attendToken}`, width: 128, height: 128 });
+  }
+  qrContainer.hidden = false;
 
   if (timestamp > lastEventTs) {
     silenced    = false;
@@ -117,4 +127,6 @@ btnCancel.addEventListener("click", async () => {
   statusEl.textContent = "Você saiu da fila.";
   ticketEl.textContent = "–";
   statusEl.classList.remove("blink");
+  qrContainer.hidden = true;
+  attendToken = undefined;
 });

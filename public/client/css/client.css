@@ -96,6 +96,14 @@ body {
   min-height: 1.5em;
 }
 
+/* QR code quando chamado */
+#qr-container {
+  margin: 0 auto 1rem;
+  width: 128px;
+  height: 128px;
+}
+#qr-container[hidden] { display: none; }
+
 /* === Botões === */
 button {
   width: 100%;

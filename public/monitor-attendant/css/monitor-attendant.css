@@ -250,6 +250,22 @@ body {
   color: var(--danger);
   margin-bottom: 0.5rem;
 }
+.attend-panel {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+}
+.qr-video {
+  width: 160px;
+  height: 120px;
+  margin: 0 auto 0.5rem;
+  background: #000;
+}
+.list li.attended {
+  color: green;
+}
 .list {
   list-style: none;
   max-height: 200px;

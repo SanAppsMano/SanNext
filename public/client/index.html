@@ -18,6 +18,7 @@
     <p class="label">Seu número:</p>
     <div id="ticket" class="ticket">–</div>
     <div id="status" class="status">Aguardando chamada...</div>
+    <div id="qr-container" hidden></div>
     <button id="btn-cancel" class="btn-cancel" disabled>Desistir da fila</button>
     <button id="btn-silence" class="btn-silence" hidden>Silenciar alerta</button>
     <audio id="alert-sound" preload="auto" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
@@ -27,6 +28,7 @@
     <button id="btn-start">Toque para ativar alertas</button>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="js/client.js"></script>
 </body>
 </html>
