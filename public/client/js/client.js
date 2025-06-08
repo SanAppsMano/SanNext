@@ -165,6 +165,8 @@ async function sendNotification() {
       renotify: true,
     };
     if (reg) {
+      const prior = await reg.getNotifications({ tag: 'sannext-call' });
+      prior.forEach(n => n.close());
       reg.showNotification('É a sua vez!', opts);
     } else {
       new Notification('É a sua vez!', opts);
