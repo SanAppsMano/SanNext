@@ -11,16 +11,22 @@ export async function handler(event) {
   const prefix = `tenant:${tenantId}:`;
 
   // Últimos 50 cancelamentos e tickets cancelados atualmente
-  const [raw, cancelledSet, missedSet] = await Promise.all([
+  const [raw, cancelledArr, missedArr] = await Promise.all([
     redis.lrange(prefix + "log:cancelled", 0, 49),
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet")
   ]);
   const all = raw.map(s => JSON.parse(s));
-  const cancelled = all.filter(r => r.reason !== "missed").sort((a, b) => b.ts - a.ts);
-  const missed = all.filter(r => r.reason === "missed").sort((a, b) => b.ts - a.ts);
-  const nums = cancelledSet.map(n => Number(n));
-  const missedNums = missedSet.map(n => Number(n));
+  const cancelledSet = new Set(cancelledArr);
+  const missedSet    = new Set(missedArr);
+  const cancelled = all
+    .filter(r => r.reason !== "missed" && cancelledSet.has(String(r.ticket)))
+    .sort((a, b) => b.ts - a.ts);
+  const missed = all
+    .filter(r => r.reason === "missed" && missedSet.has(String(r.ticket)))
+    .sort((a, b) => b.ts - a.ts);
+  const nums = Array.from(cancelledSet).map(n => Number(n));
+  const missedNums = Array.from(missedSet).map(n => Number(n));
 
   return {
     statusCode: 200,

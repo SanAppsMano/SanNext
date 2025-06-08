@@ -28,13 +28,13 @@ export async function handler(event) {
     await redis.srem(prefix + "missedSet", String(next));
   } else {
     next = await redis.incr(counterKey);
-    // Se automático, pular tickets cancelados e perdidos
+    const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
+    // Se automático, pular tickets cancelados e perdidos sem removê-los
     while (
-      (await redis.sismember(prefix + "cancelledSet", String(next))) ||
-      (await redis.sismember(prefix + "missedSet", String(next)))
+      next <= ticketCount &&
+      ((await redis.sismember(prefix + "cancelledSet", String(next))) ||
+       (await redis.sismember(prefix + "missedSet", String(next))))
     ) {
-      await redis.srem(prefix + "cancelledSet", String(next));
-      await redis.srem(prefix + "missedSet", String(next));
       next = await redis.incr(counterKey);
     }
   }
