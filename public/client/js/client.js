@@ -17,6 +17,7 @@ if (empresa) {
 const ticketEl   = document.getElementById("ticket");
 const statusEl   = document.getElementById("status");
 const btnCancel  = document.getElementById("btn-cancel");
+const btnJoin    = document.getElementById("btn-join");
 const btnSilence = document.getElementById("btn-silence");
 const btnStart   = document.getElementById("btn-start");
 const overlay    = document.getElementById("overlay");
@@ -26,6 +27,19 @@ let clientId, ticketNumber;
 let polling, alertInterval;
 let lastEventTs = 0;
 let silenced   = false;
+
+function handleExit(msg) {
+  clearInterval(polling);
+  clearInterval(alertInterval);
+  ticketNumber = null;
+  ticketEl.textContent = "–";
+  statusEl.textContent = msg;
+  statusEl.classList.remove("blink");
+  btnSilence.hidden = true;
+  btnCancel.hidden = true;
+  btnJoin.hidden = false;
+  btnJoin.disabled = false;
+}
 
 // AVISO AO RECARREGAR/FECHAR A PÁGINA
 window.addEventListener('beforeunload', function (e) {
@@ -44,6 +58,8 @@ btnStart.addEventListener("click", () => {
   if (navigator.vibrate) navigator.vibrate(1);
   if ("Notification" in window) Notification.requestPermission();
   overlay.remove();
+  btnJoin.hidden = true;
+  btnCancel.hidden = false;
   btnCancel.disabled = false;
   getTicket();
   polling = setInterval(checkStatus, 2000);
@@ -56,12 +72,20 @@ async function getTicket() {
   ticketNumber = data.ticketNumber;
   ticketEl.textContent  = ticketNumber;
   statusEl.textContent  = "Aguardando chamada...";
+  btnCancel.hidden = false;
+  btnCancel.disabled = false;
+  btnJoin.hidden = true;
 }
 
 async function checkStatus() {
   if (!ticketNumber) return;
   const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
-  const { currentCall, timestamp, attendant } = await res.json();
+  const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
+
+  if (ticketCounter < ticketNumber) {
+    handleExit("Fila reiniciada. Entre novamente.");
+    return;
+  }
 
   if (currentCall !== ticketNumber) {
     statusEl.textContent = `Chamando: ${currentCall} (${attendant})`;
@@ -113,8 +137,11 @@ btnCancel.addEventListener("click", async () => {
     body: JSON.stringify({ clientId })
   });
 
-  clearInterval(polling);
-  statusEl.textContent = "Você saiu da fila.";
-  ticketEl.textContent = "–";
-  statusEl.classList.remove("blink");
+  handleExit("Você saiu da fila.");
+});
+
+btnJoin.addEventListener("click", () => {
+  btnJoin.disabled = true;
+  getTicket();
+  polling = setInterval(checkStatus, 2000);
 });
