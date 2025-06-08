@@ -4,6 +4,10 @@
 const urlParams = new URL(location).searchParams;
 const tenantId  = urlParams.get("t");
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(console.error);
+}
+
 // pega também o nome da empresa
 const empresa = urlParams.get("empresa");
 if (empresa) {
@@ -146,7 +150,28 @@ function alertUser() {
     if (navigator.vibrate) navigator.vibrate([200,100,200]);
   };
   doAlert();
+  sendNotification();
   alertInterval = setInterval(doAlert, 5000);
+}
+
+async function sendNotification() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('sw.js');
+    const opts = {
+      body: `Ticket ${ticketNumber} - dirija-se ao atendimento`,
+      vibrate: [200,100,200],
+      tag: 'sannext-call',
+      renotify: true,
+    };
+    if (reg) {
+      reg.showNotification('É a sua vez!', opts);
+    } else {
+      new Notification('É a sua vez!', opts);
+    }
+  } catch (e) {
+    console.error('sendNotification', e);
+  }
 }
 
 btnSilence.addEventListener("click", () => {
