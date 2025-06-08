@@ -20,6 +20,17 @@ export async function handler(event) {
   await redis.srem(prefix + "cancelledSet", ticketStr);
   await redis.srem(prefix + "missedSet", ticketStr);
 
+  // Remove eventuais registros de perda de vez
+  const missRaw = await redis.lrange(prefix + "log:cancelled", 0, -1);
+  for (const item of missRaw) {
+    try {
+      const obj = JSON.parse(item);
+      if (obj.ticket === Number(ticket) && obj.reason === "missed") {
+        await redis.lrem(prefix + "log:cancelled", 0, item);
+      }
+    } catch {}
+  }
+
   const callTs = Number(await redis.get(prefix + "currentCallTs") || 0);
   const duration = callTs ? Date.now() - callTs : 0;
   const wait = Number(await redis.get(prefix + `wait:${ticket}`) || 0);
