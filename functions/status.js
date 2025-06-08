@@ -26,9 +26,7 @@ export async function handler(event) {
   const cancelledCount= cancelledNums.length;
   const missedCount   = missedNums.length;
   const attendedCount = attendedNums.length;
-  const effCancelled  = cancelledNums.filter(n => n > currentCall).length;
-  const effMissed     = missedNums.filter(n => n > currentCall).length;
-  const waiting       = Math.max(0, ticketCounter - currentCall - effCancelled - effMissed);
+  const waiting       = Math.max(0, ticketCounter - cancelledCount - missedCount - attendedCount);
 
   return {
     statusCode: 200,
