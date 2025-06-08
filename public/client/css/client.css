@@ -112,6 +112,11 @@ button {
   color: #fff;
   margin-bottom: 0.5rem;
 }
+.btn-join {
+  background: var(--primary);
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
 .btn-cancel:disabled {
   background: #bbb;
   cursor: not-allowed;

@@ -11,12 +11,38 @@ export async function handler(event) {
   const prefix = `tenant:${tenantId}:`;
 
   const currentCall   = Number(await redis.get(prefix + "currentCall")   || 0);
+  const callCounter   = Number(await redis.get(prefix + "callCounter")    || 0);
   const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
   const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
   const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
+  const [cancelledSet, missedSet, attendedSet] = await Promise.all([
+    redis.smembers(prefix + "cancelledSet"),
+    redis.smembers(prefix + "missedSet"),
+    redis.smembers(prefix + "attendedSet")
+  ]);
+  const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
+  const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
+  const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
+  const cancelledCount= cancelledNums.length;
+  const missedCount   = missedNums.length;
+  const attendedCount = attendedNums.length;
+  const waiting       = Math.max(0, ticketCounter - cancelledCount - missedCount - attendedCount);
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ currentCall, ticketCounter, attendant, timestamp }),
+    body: JSON.stringify({
+      currentCall,
+      callCounter,
+      ticketCounter,
+      attendant,
+      timestamp,
+      cancelledCount,
+      cancelledNumbers: cancelledNums,
+      missedNumbers: missedNums,
+      missedCount,
+      attendedNumbers: attendedNums,
+      attendedCount,
+      waiting,
+    }),
   };
 }
