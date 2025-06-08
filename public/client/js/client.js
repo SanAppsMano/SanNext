@@ -30,8 +30,26 @@ const alertSound = document.getElementById("alert-sound");
 let clientId, ticketNumber;
 let polling, alertInterval;
 let lastEventTs = 0;
+let wakeLock = null;
 let silenced   = false;
 let callStartTs = 0;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => (wakeLock = null));
+  } catch (e) {
+    console.error('wakeLock', e);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
 
 function handleExit(msg) {
   clearInterval(polling);
@@ -39,6 +57,7 @@ function handleExit(msg) {
   ticketNumber = null;
   callStartTs = 0;
   lastEventTs = 0;
+  releaseWakeLock();
   ticketEl.textContent = "–";
   statusEl.textContent = msg;
   statusEl.classList.remove("blink");
@@ -143,6 +162,7 @@ async function checkStatus() {
 
 function alertUser() {
   btnSilence.hidden = false;
+  requestWakeLock();
   const doAlert = () => {
     if (silenced) return;
     alertSound.currentTime = 0;
@@ -163,6 +183,7 @@ async function sendNotification() {
       vibrate: [200,100,200],
       tag: 'sannext-call',
       renotify: true,
+      requireInteraction: true,
     };
     if (reg) {
       const prior = await reg.getNotifications({ tag: 'sannext-call' });
@@ -182,6 +203,7 @@ btnSilence.addEventListener("click", () => {
   alertSound.pause();
   alertSound.currentTime = 0;
   if (navigator.vibrate) navigator.vibrate(0);
+  releaseWakeLock();
   btnSilence.hidden = true;
 });
 
@@ -196,6 +218,7 @@ btnCancel.addEventListener("click", async () => {
     body: JSON.stringify({ clientId, reason: "client" })
   });
 
+  releaseWakeLock();
   handleExit("Você saiu da fila.");
 });
 
