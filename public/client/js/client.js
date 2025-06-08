@@ -4,6 +4,14 @@
 const urlParams = new URL(location).searchParams;
 const tenantId  = urlParams.get("t");
 
+// Chave pública VAPID para push notifications (injetada via HTML/env)
+const VAPID_PUBLIC_KEY = window.VAPID_PUBLIC_KEY || "";
+
+// Registra o service worker para notificações push
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
 // pega também o nome da empresa
 const empresa = urlParams.get("empresa");
 if (empresa) {
@@ -42,12 +50,32 @@ btnStart.addEventListener("click", () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
-  if ("Notification" in window) Notification.requestPermission();
+  let permPromise = Promise.resolve();
+  if ("Notification" in window) permPromise = Notification.requestPermission();
   overlay.remove();
   btnCancel.disabled = false;
+  permPromise.then(subscribePush);
   getTicket();
   polling = setInterval(checkStatus, 2000);
 });
+
+async function subscribePush() {
+  if (!("serviceWorker" in navigator) || !VAPID_PUBLIC_KEY) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: VAPID_PUBLIC_KEY
+    });
+    await fetch(`/.netlify/functions/saveSubscription?t=${tenantId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId, subscription })
+    });
+  } catch (e) {
+    console.error("subscribePush", e);
+  }
+}
 
 async function getTicket() {
   const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
