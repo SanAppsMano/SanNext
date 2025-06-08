@@ -27,11 +27,14 @@ let clientId, ticketNumber;
 let polling, alertInterval;
 let lastEventTs = 0;
 let silenced   = false;
+let callStartTs = 0;
 
 function handleExit(msg) {
   clearInterval(polling);
   clearInterval(alertInterval);
   ticketNumber = null;
+  callStartTs = 0;
+  lastEventTs = 0;
   ticketEl.textContent = "–";
   statusEl.textContent = msg;
   statusEl.classList.remove("blink");
@@ -75,6 +78,8 @@ async function getTicket() {
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   btnJoin.hidden = true;
+  callStartTs = 0;
+  lastEventTs = 0;
 }
 
 async function checkStatus() {
@@ -84,6 +89,17 @@ async function checkStatus() {
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
+    return;
+  }
+
+  if (currentCall > ticketNumber) {
+    const duration = callStartTs ? Date.now() - callStartTs : 0;
+    await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId, reason: "missed", duration })
+    });
+    handleExit("Você perdeu a vez.");
     return;
   }
 
@@ -101,6 +117,7 @@ async function checkStatus() {
   if (timestamp > lastEventTs) {
     silenced    = false;
     lastEventTs = timestamp;
+    if (!callStartTs) callStartTs = timestamp;
     alertUser();
   }
 }
@@ -134,7 +151,7 @@ btnCancel.addEventListener("click", async () => {
   await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId })
+    body: JSON.stringify({ clientId, reason: "client" })
   });
 
   handleExit("Você saiu da fila.");

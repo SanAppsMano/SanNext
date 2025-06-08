@@ -19,6 +19,7 @@ export async function handler(event) {
   await redis.set(prefix + "currentCallTs", ts);
   await redis.del(prefix + "currentAttendant");
   await redis.del(prefix + "cancelledSet");
+  await redis.del(prefix + "missedSet");
 
   // Log de reset
   await redis.lpush(

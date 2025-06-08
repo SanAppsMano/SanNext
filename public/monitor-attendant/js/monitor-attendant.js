@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentCallNum = 0; // último número chamado
   let ticketCounter  = 0;
   let cancelledNums  = [];
+  let missedNums     = [];
   let cancelledCount = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
@@ -173,12 +174,14 @@ function startBouncingCompanyName(text) {
         currentCall,
         ticketCounter: tc,
         cancelledNumbers = [],
+        missedNumbers = [],
         waiting = 0,
       } = await res.json();
 
       currentCallNum  = currentCall;
       ticketCounter   = tc;
       cancelledNums   = cancelledNumbers.map(Number);
+      missedNums      = missedNumbers.map(Number);
       cancelledCount  = cancelledNums.length;
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
@@ -189,6 +192,7 @@ function startBouncingCompanyName(text) {
       cancelledNums.forEach(n => {
         const div = document.createElement('div');
         div.className = 'cancel-thumb';
+        if (missedNums.includes(n)) div.classList.add('missed');
         div.textContent = n;
         cancelThumbsEl.appendChild(div);
       });
@@ -216,12 +220,15 @@ function startBouncingCompanyName(text) {
   async function fetchCancelled(t) {
     try {
       const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
-      const { cancelled = [] } = await res.json();
+      const { cancelled = [], missed = [] } = await res.json();
 
       cancelListEl.innerHTML = '';
-      cancelled.forEach(({ ticket, ts }) => {
+      cancelListEl.innerHTML = '';
+      cancelled.forEach(({ ticket, ts, reason, duration }) => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}</span>`;
+        if (reason === 'missed') li.classList.add('missed');
+        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
+        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}</span>`;
         cancelListEl.appendChild(li);
       });
     } catch (e) {

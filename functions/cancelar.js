@@ -7,7 +7,7 @@ export async function handler(event) {
     return { statusCode: 400, body: "Missing tenantId" };
   }
 
-  const { clientId } = JSON.parse(event.body || "{}");
+  const { clientId, reason = "client", duration } = JSON.parse(event.body || "{}");
   const redis  = Redis.fromEnv();
   const prefix = `tenant:${tenantId}:`;
 
@@ -18,17 +18,20 @@ export async function handler(event) {
   // Se havia ticket, marca-o como cancelado
   if (ticketNum) {
     await redis.sadd(prefix + "cancelledSet", String(ticketNum));
+    if (reason === "missed") {
+      await redis.sadd(prefix + "missedSet", String(ticketNum));
+    }
   }
 
   // Log de cancelamento
   const ts = Date.now();
   await redis.lpush(
     prefix + "log:cancelled",
-    JSON.stringify({ ticket: Number(ticketNum), ts })
+    JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0 })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts }),
+    body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0 }),
   };
 }

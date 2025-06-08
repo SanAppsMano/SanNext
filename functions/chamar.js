@@ -22,11 +22,13 @@ export async function handler(event) {
       await redis.set(counterKey, next);
     }
     await redis.srem(prefix + "cancelledSet", String(next));
+    await redis.srem(prefix + "missedSet", String(next));
   } else {
     next = await redis.incr(counterKey);
     // Se automático, pular tickets cancelados
     while (await redis.sismember(prefix + "cancelledSet", String(next))) {
       await redis.srem(prefix + "cancelledSet", String(next));
+      await redis.srem(prefix + "missedSet", String(next));
       next = await redis.incr(counterKey);
     }
   }

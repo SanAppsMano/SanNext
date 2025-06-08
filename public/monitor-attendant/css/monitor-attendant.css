@@ -267,6 +267,9 @@ body {
   justify-content: center;
   font-weight: bold;
 }
+.cancel-thumb.missed {
+  background: var(--warning);
+}
 .list {
   list-style: none;
   max-height: 200px;
@@ -278,6 +281,9 @@ body {
   justify-content: space-between;
   padding: 0.5rem 0;
   border-bottom: 1px solid #eee;
+}
+.list li.missed {
+  color: var(--warning);
 }
 .list li .ts {
   font-size: 0.85rem;
