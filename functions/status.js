@@ -15,13 +15,16 @@ export async function handler(event) {
   const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
   const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
   const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
-  const [cancelledSet, missedSet] = await Promise.all([
+  const [cancelledSet, missedSet, attendedSet] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
-    redis.smembers(prefix + "missedSet")
+    redis.smembers(prefix + "missedSet"),
+    redis.smembers(prefix + "attendedSet")
   ]);
   const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
+  const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
   const cancelledCount= cancelledNums.length;
+  const attendedCount = attendedNums.length;
   const effCancelled  = cancelledNums.filter(n => n > currentCall).length;
   const waiting       = Math.max(0, ticketCounter - currentCall - effCancelled);
 
@@ -36,6 +39,8 @@ export async function handler(event) {
       cancelledCount,
       cancelledNumbers: cancelledNums,
       missedNumbers: missedNums,
+      attendedNumbers: attendedNums,
+      attendedCount,
       waiting,
     }),
   };

@@ -15,6 +15,15 @@ export async function handler(event) {
   const ticketNum = await redis.get(prefix + `ticket:${clientId}`);
   await redis.del(prefix + `ticket:${clientId}`);
 
+  let wait = 0;
+  if (ticketNum) {
+    const joinTs = await redis.get(prefix + `ticketTime:${ticketNum}`);
+    if (joinTs) {
+      wait = Date.now() - Number(joinTs);
+    }
+    await redis.del(prefix + `ticketTime:${ticketNum}`);
+  }
+
   // Se havia ticket, marca-o como cancelado
   if (ticketNum) {
     await redis.sadd(prefix + "cancelledSet", String(ticketNum));
@@ -27,11 +36,11 @@ export async function handler(event) {
   const ts = Date.now();
   await redis.lpush(
     prefix + "log:cancelled",
-    JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0 })
+    JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0 }),
+    body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait }),
   };
 }

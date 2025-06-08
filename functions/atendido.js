@@ -1,0 +1,38 @@
+import { Redis } from "@upstash/redis";
+
+export async function handler(event) {
+  const url      = new URL(event.rawUrl);
+  const tenantId = url.searchParams.get("t");
+  if (!tenantId) {
+    return { statusCode: 400, body: "Missing tenantId" };
+  }
+
+  const { ticket } = JSON.parse(event.body || "{}");
+  if (!ticket) {
+    return { statusCode: 400, body: "Missing ticket" };
+  }
+
+  const redis  = Redis.fromEnv();
+  const prefix = `tenant:${tenantId}:`;
+
+  const ticketStr = String(ticket);
+  await redis.sadd(prefix + "attendedSet", ticketStr);
+  await redis.srem(prefix + "cancelledSet", ticketStr);
+  await redis.srem(prefix + "missedSet", ticketStr);
+
+  const callTs = Number(await redis.get(prefix + "currentCallTs") || 0);
+  const duration = callTs ? Date.now() - callTs : 0;
+  const wait = Number(await redis.get(prefix + `wait:${ticket}`) || 0);
+  await redis.del(prefix + `wait:${ticket}`);
+
+  const ts = Date.now();
+  await redis.lpush(
+    prefix + "log:attended",
+    JSON.stringify({ ticket: Number(ticket), ts, duration, wait })
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ attended: true, ticket: Number(ticket), duration, wait, ts }),
+  };
+}

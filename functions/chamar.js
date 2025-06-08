@@ -34,6 +34,13 @@ export async function handler(event) {
   }
 
   const ts = Date.now();
+  let wait = 0;
+  const joinTs = await redis.get(prefix + `ticketTime:${next}`);
+  if (joinTs) {
+    wait = ts - Number(joinTs);
+    await redis.del(prefix + `ticketTime:${next}`);
+  }
+  await redis.set(prefix + `wait:${next}`, wait);
   await redis.set(prefix + "currentCall", next);
   await redis.set(prefix + "currentCallTs", ts);
   if (attendant) {
@@ -43,11 +50,11 @@ export async function handler(event) {
   // Log de chamada
   await redis.lpush(
     prefix + "log:called",
-    JSON.stringify({ ticket: next, attendant, ts })
+    JSON.stringify({ ticket: next, attendant, ts, wait })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ called: next, attendant, ts }),
+    body: JSON.stringify({ called: next, attendant, ts, wait }),
   };
 }

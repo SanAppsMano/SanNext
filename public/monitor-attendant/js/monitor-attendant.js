@@ -73,8 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
+  const attendedListEl = document.getElementById('attended-list');
+  const attendedThumbsEl = document.getElementById('attended-thumbs');
+  const attendedCountEl  = document.getElementById('attended-count');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
+  const btnAttended    = document.getElementById('btn-attended');
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
   const btnReset       = document.getElementById('btn-reset');
@@ -103,6 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let cancelledNums  = [];
   let missedNums     = [];
   let cancelledCount = 0;
+  let attendedNums   = [];
+  let attendedCount  = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
  /** Renderiza o QR Code e configura interação */
@@ -175,6 +181,8 @@ function startBouncingCompanyName(text) {
         ticketCounter: tc,
         cancelledNumbers = [],
         missedNumbers = [],
+        attendedNumbers = [],
+        attendedCount: ac = 0,
         waiting = 0,
       } = await res.json();
 
@@ -182,7 +190,9 @@ function startBouncingCompanyName(text) {
       ticketCounter   = tc;
       cancelledNums   = cancelledNumbers.map(Number);
       missedNums      = missedNumbers.map(Number);
+      attendedNums    = attendedNumbers.map(Number);
       cancelledCount  = cancelledNums.length;
+      attendedCount   = ac;
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       waitingEl.textContent     = waiting;
@@ -197,6 +207,15 @@ function startBouncingCompanyName(text) {
         cancelThumbsEl.appendChild(div);
       });
 
+      attendedCountEl.textContent = attendedCount;
+      attendedThumbsEl.innerHTML  = '';
+      attendedNums.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'attended-thumb';
+        div.textContent = n;
+        attendedThumbsEl.appendChild(div);
+      });
+
       updateManualOptions();
     } catch (e) {
       console.error(e);
@@ -207,7 +226,7 @@ function startBouncingCompanyName(text) {
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
     for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
-      if (cancelledNums.includes(i)) continue;
+      if (cancelledNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = i;
@@ -224,11 +243,12 @@ function startBouncingCompanyName(text) {
 
       cancelListEl.innerHTML = '';
       cancelListEl.innerHTML = '';
-      cancelled.forEach(({ ticket, ts, reason, duration }) => {
+      cancelled.forEach(({ ticket, ts, reason, duration, wait }) => {
         const li = document.createElement('li');
         if (reason === 'missed') li.classList.add('missed');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}</span>`;
+        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         cancelListEl.appendChild(li);
       });
     } catch (e) {
@@ -236,8 +256,28 @@ function startBouncingCompanyName(text) {
     }
   }
 
+  /** Busca atendidos e popula lista */
+  async function fetchAttended(t) {
+    try {
+      const res = await fetch(`/.netlify/functions/atendidos?t=${t}`);
+      const { attended = [] } = await res.json();
+
+      attendedListEl.innerHTML = '';
+      attended.forEach(({ ticket, ts, duration, wait }) => {
+        const li = document.createElement('li');
+        li.classList.add('attended');
+        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
+        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        attendedListEl.appendChild(li);
+      });
+    } catch (e) {
+      console.error('Erro ao buscar atendidos:', e);
+    }
+  }
+
   function refreshAll(t) {
-    fetchStatus(t).then(() => fetchCancelled(t));
+    fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); });
   }
 
   /** Inicializa botões e polling */
@@ -253,6 +293,15 @@ function startBouncingCompanyName(text) {
     btnRepeat.onclick = async () => {
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
       updateCall(called, attendant);
+      refreshAll(t);
+    };
+    btnAttended.onclick = async () => {
+      if (!currentCallNum) return;
+      await fetch(`/.netlify/functions/atendido?t=${t}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket: currentCallNum })
+      });
       refreshAll(t);
     };
     btnManual.onclick = async () => {
