@@ -12,6 +12,9 @@ export async function handler(event) {
   const paramNum  = url.searchParams.get("num");
   const attendant = url.searchParams.get("id") || "";
 
+  const prevCall   = Number(await redis.get(prefix + "currentCall") || 0);
+  const prevCallTs = Number(await redis.get(prefix + "currentCallTs") || 0);
+
   // Próximo a chamar
   let next;
   const counterKey = prefix + "callCounter";
@@ -25,11 +28,32 @@ export async function handler(event) {
     await redis.srem(prefix + "missedSet", String(next));
   } else {
     next = await redis.incr(counterKey);
-    // Se automático, pular tickets cancelados
-    while (await redis.sismember(prefix + "cancelledSet", String(next))) {
+    // Se automático, pular tickets cancelados e perdidos
+    while (
+      (await redis.sismember(prefix + "cancelledSet", String(next))) ||
+      (await redis.sismember(prefix + "missedSet", String(next)))
+    ) {
       await redis.srem(prefix + "cancelledSet", String(next));
       await redis.srem(prefix + "missedSet", String(next));
       next = await redis.incr(counterKey);
+    }
+  }
+
+  if (prevCall && prevCall !== next) {
+    const [isCancelled, isMissed, isAttended] = await Promise.all([
+      redis.sismember(prefix + "cancelledSet", String(prevCall)),
+      redis.sismember(prefix + "missedSet", String(prevCall)),
+      redis.sismember(prefix + "attendedSet", String(prevCall))
+    ]);
+    if (!isCancelled && !isMissed && !isAttended) {
+      const dur = prevCallTs ? Date.now() - prevCallTs : 0;
+      const waitPrev = Number(await redis.get(prefix + `wait:${prevCall}`) || 0);
+      await redis.sadd(prefix + "missedSet", String(prevCall));
+      await redis.lpush(
+        prefix + "log:cancelled",
+        JSON.stringify({ ticket: prevCall, ts: Date.now(), reason: "missed", duration: dur, wait: waitPrev })
+      );
+      await redis.del(prefix + `wait:${prevCall}`);
     }
   }
 

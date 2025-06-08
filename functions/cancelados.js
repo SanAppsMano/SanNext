@@ -16,12 +16,21 @@ export async function handler(event) {
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet")
   ]);
-  const list = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
+  const all = raw.map(s => JSON.parse(s));
+  const cancelled = all.filter(r => r.reason !== "missed").sort((a, b) => b.ts - a.ts);
+  const missed = all.filter(r => r.reason === "missed").sort((a, b) => b.ts - a.ts);
   const nums = cancelledSet.map(n => Number(n));
-  const missed = missedSet.map(n => Number(n));
+  const missedNums = missedSet.map(n => Number(n));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ cancelled: list, numbers: nums, missed, count: nums.length }),
+    body: JSON.stringify({
+      cancelled,
+      numbers: nums,
+      count: nums.length,
+      missed,
+      missedNumbers: missedNums,
+      missedCount: missedNums.length,
+    }),
   };
 }

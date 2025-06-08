@@ -24,9 +24,11 @@ export async function handler(event) {
   const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
   const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
   const cancelledCount= cancelledNums.length;
+  const missedCount   = missedNums.length;
   const attendedCount = attendedNums.length;
   const effCancelled  = cancelledNums.filter(n => n > currentCall).length;
-  const waiting       = Math.max(0, ticketCounter - currentCall - effCancelled);
+  const effMissed     = missedNums.filter(n => n > currentCall).length;
+  const waiting       = Math.max(0, ticketCounter - currentCall - effCancelled - effMissed);
 
   return {
     statusCode: 200,
@@ -39,6 +41,7 @@ export async function handler(event) {
       cancelledCount,
       cancelledNumbers: cancelledNums,
       missedNumbers: missedNums,
+      missedCount,
       attendedNumbers: attendedNums,
       attendedCount,
       waiting,

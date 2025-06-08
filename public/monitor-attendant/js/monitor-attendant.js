@@ -73,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
+  const missedListEl   = document.getElementById('missed-list');
+  const missedThumbsEl = document.getElementById('missed-thumbs');
+  const missedCountEl  = document.getElementById('missed-count');
   const attendedListEl = document.getElementById('attended-list');
   const attendedThumbsEl = document.getElementById('attended-thumbs');
   const attendedCountEl  = document.getElementById('attended-count');
@@ -107,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let cancelledNums  = [];
   let missedNums     = [];
   let cancelledCount = 0;
+  let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
@@ -182,6 +186,8 @@ function startBouncingCompanyName(text) {
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
+        cancelledCount: cc = 0,
+        missedCount: mc = 0,
         attendedCount: ac = 0,
         waiting = 0,
       } = await res.json();
@@ -191,7 +197,8 @@ function startBouncingCompanyName(text) {
       cancelledNums   = cancelledNumbers.map(Number);
       missedNums      = missedNumbers.map(Number);
       attendedNums    = attendedNumbers.map(Number);
-      cancelledCount  = cancelledNums.length;
+      cancelledCount  = cc || cancelledNums.length;
+      missedCount     = mc || missedNums.length;
       attendedCount   = ac;
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
@@ -202,9 +209,17 @@ function startBouncingCompanyName(text) {
       cancelledNums.forEach(n => {
         const div = document.createElement('div');
         div.className = 'cancel-thumb';
-        if (missedNums.includes(n)) div.classList.add('missed');
         div.textContent = n;
         cancelThumbsEl.appendChild(div);
+      });
+
+      missedCountEl.textContent = missedCount;
+      missedThumbsEl.innerHTML = '';
+      missedNums.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'missed-thumb';
+        div.textContent = n;
+        missedThumbsEl.appendChild(div);
       });
 
       attendedCountEl.textContent = attendedCount;
@@ -226,7 +241,7 @@ function startBouncingCompanyName(text) {
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
     for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
-      if (cancelledNums.includes(i) || attendedNums.includes(i)) continue;
+      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = i;
@@ -239,17 +254,25 @@ function startBouncingCompanyName(text) {
   async function fetchCancelled(t) {
     try {
       const res = await fetch(`/.netlify/functions/cancelados?t=${t}`);
-      const { cancelled = [], missed = [] } = await res.json();
+      const { cancelled = [], missed = [], missedNumbers = [] } = await res.json();
 
-      cancelListEl.innerHTML = '';
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts, reason, duration, wait }) => {
         const li = document.createElement('li');
-        if (reason === 'missed') li.classList.add('missed');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         cancelListEl.appendChild(li);
+      });
+
+      missedListEl.innerHTML = '';
+      missed.forEach(({ ticket, ts, duration, wait }) => {
+        const li = document.createElement('li');
+        li.classList.add('missed');
+        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
+        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        missedListEl.appendChild(li);
       });
     } catch (e) {
       console.error('Erro ao buscar cancelados:', e);

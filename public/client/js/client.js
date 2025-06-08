@@ -85,10 +85,20 @@ async function getTicket() {
 async function checkStatus() {
   if (!ticketNumber) return;
   const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
-  const { currentCall, ticketCounter, timestamp, attendant } = await res.json();
+  const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [] } = await res.json();
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
+    return;
+  }
+
+  if (missedNumbers.includes(ticketNumber)) {
+    handleExit("Você perdeu a vez.");
+    return;
+  }
+
+  if (attendedNumbers.includes(ticketNumber)) {
+    handleExit("Atendimento concluído.");
     return;
   }
 

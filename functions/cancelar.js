@@ -24,11 +24,12 @@ export async function handler(event) {
     await redis.del(prefix + `ticketTime:${ticketNum}`);
   }
 
-  // Se havia ticket, marca-o como cancelado
+  // Se havia ticket, marca-o de acordo com o motivo
   if (ticketNum) {
-    await redis.sadd(prefix + "cancelledSet", String(ticketNum));
     if (reason === "missed") {
       await redis.sadd(prefix + "missedSet", String(ticketNum));
+    } else {
+      await redis.sadd(prefix + "cancelledSet", String(ticketNum));
     }
   }
 
