@@ -32,6 +32,27 @@ h1 {
   animation: blink 1s linear infinite;
 }
 
+.alert-toggle {
+  margin-top: 1rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+  .number {
+    font-size: 4rem;
+  }
+  .name {
+    font-size: 1.5rem;
+  }
+}
+
 @keyframes blink {
   0%,50%,100% { opacity:1; }
   25%,75% { opacity:0; }
