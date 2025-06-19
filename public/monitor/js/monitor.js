@@ -5,12 +5,18 @@ const alertSound = document.getElementById('alert-sound');
 
 function alertUser(num, name) {
   if (alertSound) {
+    // bip em volume médio
+    alertSound.volume = 0.7;
     alertSound.currentTime = 0;
     alertSound.play().catch(() => {});
   }
   if ('speechSynthesis' in window) {
-    const utter = new SpeechSynthesisUtterance(`É a sua vez: ${num} ${name || ''}`);
+    const utter = new SpeechSynthesisUtterance(
+      `É a sua vez: ${num} ${name || ''}`
+    );
     utter.lang = 'pt-BR';
+    // falar no volume máximo
+    utter.volume = 1;
     speechSynthesis.speak(utter);
   }
 }
