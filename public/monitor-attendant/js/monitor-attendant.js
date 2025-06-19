@@ -93,6 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const reportSummary  = document.getElementById('report-summary');
   const reportChartEl  = document.getElementById('report-chart');
 
+  // Botão de relatório oculto até haver dados
+  btnReport.hidden = true;
+
   // QR Interaction setup
   const qrContainer    = document.getElementById('qrcode');
   const qrOverlay      = document.createElement('div');
@@ -250,6 +253,9 @@ function startBouncingCompanyName(text) {
         div.textContent = n;
         attendedThumbsEl.appendChild(div);
       });
+
+      // Exibe o botão de relatório apenas se houver tickets registrados
+      btnReport.hidden = ticketCounter === 0;
 
       updateManualOptions();
     } catch (e) {
