@@ -3,6 +3,25 @@
 const alertSound   = document.getElementById('alert-sound');
 const enableAlerts = document.getElementById('enable-alerts');
 let lastCall;
+let audioCtx;
+
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    gain.gain.setValueAtTime(1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+    osc.stop(audioCtx.currentTime + 0.5);
+  } catch(e) {
+    console.error('playBeep', e);
+  }
+}
 
 // restaura preferencia
 enableAlerts.checked = localStorage.getItem('monitorAlerts') === 'on';
@@ -27,12 +46,12 @@ async function fetchCurrent() {
     }
 
     if (lastCall !== undefined && currentCall !== lastCall && enableAlerts.checked) {
-      alertSound.currentTime = 0;
-      alertSound.play().catch(() => {});
+      const audioPromise = alertSound.play().catch(() => { playBeep(); });
       if ('speechSynthesis' in window) {
         const utter = new SpeechSynthesisUtterance(`É a sua vez: ${currentCall} ${name || ''}`);
         utter.lang = 'pt-BR';
-        speechSynthesis.speak(utter);
+        if (audioPromise instanceof Promise) audioPromise.finally(() => speechSynthesis.speak(utter));
+        else speechSynthesis.speak(utter);
       }
     }
     lastCall = currentCall;
