@@ -240,9 +240,11 @@ body {
 }
 .manual select {
   flex: 1;
+  min-width: 0;
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: var(--radius);
+  max-width: 10rem;
 }
 .manual button {
   white-space: nowrap;

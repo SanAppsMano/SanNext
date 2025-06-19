@@ -266,12 +266,15 @@ function startBouncingCompanyName(text) {
   /** Atualiza opções manuais */
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
+    const MAX_LEN = 15;
     for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
       const nm = ticketNames[i];
-      opt.textContent = nm ? `${i} - ${nm}` : i;
+      let label = nm ? `${i} - ${nm}` : String(i);
+      if (label.length > MAX_LEN) label = label.slice(0, MAX_LEN) + '…';
+      opt.textContent = label;
       selectManual.appendChild(opt);
     }
     selectManual.disabled = selectManual.options.length === 1;
