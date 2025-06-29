@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 
+const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
+
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
   const tenantId = url.searchParams.get("t");
@@ -43,6 +45,8 @@ export async function handler(event) {
       prefix + "log:cancelled",
       JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait })
     );
+    await redis.ltrim(prefix + "log:cancelled", 0, 999);
+    await redis.expire(prefix + "log:cancelled", LOG_TTL);
 
     return {
       statusCode: 200,
