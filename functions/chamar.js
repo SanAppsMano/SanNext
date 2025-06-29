@@ -69,17 +69,18 @@ export async function handler(event) {
     wait = ts - Number(joinTs);
     // mantém ticketTime registrado para o relatório
   }
-  await redis.set(prefix + `wait:${next}`, wait);
-  await redis.set(prefix + "currentCall", next);
-  await redis.set(prefix + "currentCallTs", ts);
+  // Atualiza dados da chamada em um único comando
+  await redis.mset({
+    [prefix + `wait:${next}`]: wait,
+    [prefix + "currentCall"]: next,
+    [prefix + "currentCallTs"]: ts,
+    [prefix + `calledTime:${next}`]: ts,
+  });
   if (attendant) {
     await redis.set(prefix + "currentAttendant", attendant);
   }
 
   const name = await redis.hget(prefix + "ticketNames", String(next));
-
-  // Armazena o timestamp da chamada para consulta posterior
-  await redis.set(prefix + `calledTime:${next}`, ts);
 
   // Log de chamada
   await redis.lpush(
