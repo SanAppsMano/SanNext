@@ -91,16 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNewManual   = document.getElementById('btn-new-manual');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
-  const btnShare       = document.getElementById('btn-share-monitor');
   const btnView        = document.getElementById('btn-view-monitor');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
   const reportSummary  = document.getElementById('report-summary');
   const reportChartEl  = document.getElementById('report-chart');
-  const shareModal     = document.getElementById('share-modal');
-  const shareClose     = document.getElementById('share-close');
-  const shareQrEl      = document.getElementById('share-qrcode');
   const viewModal      = document.getElementById('view-modal');
   const viewClose      = document.getElementById('view-close');
   const viewQrEl       = document.getElementById('view-qrcode');
@@ -590,14 +586,6 @@ function startBouncingCompanyName(text) {
     reportClose.onclick = () => { reportModal.hidden = true; };
   }
 
-  /** Exibe QR Code para duplicar monitor */
-  function openShareModal(t) {
-    if (!t || !cfg) return;
-    shareQrEl.innerHTML = '';
-    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&senha=${encodeURIComponent(cfg.senha)}`;
-    new QRCode(shareQrEl, { text: url, width: 256, height: 256 });
-    shareModal.hidden = false;
-  }
 
   /** Exibe QR Code para espelhar monitor */
   function openViewModal(t) {
@@ -653,9 +641,7 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnReport.onclick = () => openReport(t);
-    btnShare.onclick  = () => openShareModal(t);
     btnView.onclick   = () => openViewModal(t);
-    shareClose.onclick = () => { shareModal.hidden = true; };
     viewClose.onclick  = () => {
       viewModal.hidden = true;
       const info = document.getElementById('view-copy-info');
