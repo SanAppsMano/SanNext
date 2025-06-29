@@ -10,11 +10,19 @@ export async function handler(event) {
   const redis  = Redis.fromEnv();
   const prefix = `tenant:${tenantId}:`;
 
-  const currentCall   = Number(await redis.get(prefix + "currentCall")   || 0);
-  const callCounter   = Number(await redis.get(prefix + "callCounter")    || 0);
-  const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
-  const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
-  const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
+  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw] =
+    await redis.mget(
+      prefix + "currentCall",
+      prefix + "callCounter",
+      prefix + "ticketCounter",
+      prefix + "currentAttendant",
+      prefix + "currentCallTs"
+    );
+  const currentCall   = Number(currentCallRaw || 0);
+  const callCounter   = Number(callCounterRaw || 0);
+  const ticketCounter = Number(ticketCounterRaw || 0);
+  const attendant     = attendantRaw || "";
+  const timestamp     = Number(timestampRaw || 0);
   const [cancelledSet, missedSet, attendedSet, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),

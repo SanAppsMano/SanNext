@@ -14,9 +14,11 @@ export async function handler(event) {
   // Cria clientId e incrementa contador de tickets
   const clientId     = uuidv4();
   const ticketNumber = await redis.incr(prefix + "ticketCounter");
-  await redis.set(prefix + `ticket:${clientId}`, ticketNumber);
-  // registra quando o cliente entrou na fila
-  await redis.set(prefix + `ticketTime:${ticketNumber}`, Date.now());
+  // registra ticket e horário de entrada em um único comando
+  await redis.mset({
+    [prefix + `ticket:${clientId}`]: ticketNumber,
+    [prefix + `ticketTime:${ticketNumber}`]: Date.now(),
+  });
 
   // Log de entrada
   const ts = Date.now();
