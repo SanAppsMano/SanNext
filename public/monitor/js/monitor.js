@@ -114,7 +114,7 @@ async function fetchCurrent() {
   }
 }
 
-// Polling a cada 2 segundos
+// Polling a cada 4 segundos
 fetchCurrent();
 setInterval(fetchCurrent, 4000);
 
