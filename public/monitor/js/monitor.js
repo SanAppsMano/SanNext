@@ -16,6 +16,8 @@ let lastId   = '';
 const alertSound   = document.getElementById('alert-sound');
 const unlockOverlay = document.getElementById('unlock-overlay');
 let wakeLock = null;
+let polling,
+    pollingActive = false;
 
 // Desbloqueia o audio na primeira interação do usuário para evitar
 // que o navegador bloqueie a execução do som de alerta
@@ -114,8 +116,19 @@ async function fetchCurrent() {
   }
 }
 
-// Polling a cada 2 segundos
-fetchCurrent();
-setInterval(fetchCurrent, 4000);
+async function longPollCurrent() {
+  if (!pollingActive) return;
+  try {
+    await fetchCurrent();
+  } catch (e) {
+    console.error('long polling error', e);
+  } finally {
+    if (pollingActive) polling = setTimeout(longPollCurrent, 0);
+  }
+}
+
+// Inicia long polling
+pollingActive = true;
+longPollCurrent();
 
 requestWakeLock();

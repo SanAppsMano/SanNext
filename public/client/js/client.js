@@ -29,6 +29,7 @@ const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
 let polling, alertInterval;
+let pollingActive = false;
 let lastEventTs = 0;
 let wakeLock = null;
 let silenced   = false;
@@ -52,7 +53,8 @@ function releaseWakeLock() {
 }
 
 function handleExit(msg) {
-  clearInterval(polling);
+  pollingActive = false;
+  clearTimeout(polling);
   clearInterval(alertInterval);
   ticketNumber = null;
   callStartTs = 0;
@@ -83,7 +85,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && ticketNumber) requestWakeLock();
 });
 
-btnStart.addEventListener("click", () => {
+btnStart.addEventListener("click", async () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
@@ -92,8 +94,9 @@ btnStart.addEventListener("click", () => {
   btnJoin.hidden = true;
   btnCancel.hidden = false;
   btnCancel.disabled = false;
-  getTicket();
-  polling = setInterval(checkStatus, 4000);
+  await getTicket();
+  pollingActive = true;
+  longPollStatus();
 });
 
 async function getTicket() {
@@ -232,6 +235,17 @@ async function sendWelcomeNotification() {
   }
 }
 
+async function longPollStatus() {
+  if (!pollingActive) return;
+  try {
+    await checkStatus();
+  } catch (e) {
+    console.error('long polling error', e);
+  } finally {
+    if (pollingActive) polling = setTimeout(longPollStatus, 0);
+  }
+}
+
 btnSilence.addEventListener("click", () => {
   silenced = true;
   clearInterval(alertInterval);
@@ -260,8 +274,9 @@ btnCancel.addEventListener("click", async () => {
   handleExit("Você saiu da fila.");
 });
 
-btnJoin.addEventListener("click", () => {
+btnJoin.addEventListener("click", async () => {
   btnJoin.disabled = true;
-  getTicket();
-  polling = setInterval(checkStatus, 4000);
+  await getTicket();
+  pollingActive = true;
+  longPollStatus();
 });

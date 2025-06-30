@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerEl       = document.querySelector('.header');
   const mainEl         = document.querySelector('.main');
   const bodyEl         = document.body;
+  let pollTimer, pollingActive = false;
 
   // Onboarding
   const onboardLabel    = document.getElementById('onboard-label');
@@ -342,8 +343,21 @@ function startBouncingCompanyName(text) {
     }
   }
 
-  function refreshAll(t) {
-    fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); });
+  async function refreshAll(t) {
+    await fetchStatus(t);
+    await fetchCancelled(t);
+    await fetchAttended(t);
+  }
+
+  async function longPollRefresh(t) {
+    if (!pollingActive) return;
+    try {
+      await refreshAll(t);
+    } catch (e) {
+      console.error('long polling error', e);
+    } finally {
+      if (pollingActive) pollTimer = setTimeout(() => longPollRefresh(t), 0);
+    }
   }
 
   async function openReport(t) {
@@ -648,8 +662,8 @@ function startBouncingCompanyName(text) {
       if (info) info.hidden = true;
     };
     renderQRCode(t);
-    refreshAll(t);
-    setInterval(() => refreshAll(t), 7000);
+    pollingActive = true;
+    longPollRefresh(t);
   }
 
   /** Exibe a interface principal após autenticação */
