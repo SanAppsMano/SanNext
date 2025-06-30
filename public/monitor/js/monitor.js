@@ -16,6 +16,7 @@ let lastId   = '';
 const alertSound   = document.getElementById('alert-sound');
 const unlockOverlay = document.getElementById('unlock-overlay');
 let wakeLock = null;
+let ablyChannel;
 
 // Desbloqueia o audio na primeira interação do usuário para evitar
 // que o navegador bloqueie a execução do som de alerta
@@ -114,8 +115,16 @@ async function fetchCurrent() {
   }
 }
 
+function setupRealtime() {
+  if (!tenantId || ablyChannel) return;
+  const realtime = new Ably.Realtime({ authUrl: '/.netlify/functions/ablyToken?t=' + tenantId });
+  ablyChannel = realtime.channels.get('tenant:' + tenantId);
+  ablyChannel.subscribe(fetchCurrent);
+}
+
 // Polling a cada 2 segundos
 fetchCurrent();
-setInterval(fetchCurrent, 2000);
+setupRealtime();
+setInterval(fetchCurrent, 10000);
 
 requestWakeLock();

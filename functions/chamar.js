@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { publish } from "./ablyClient.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -93,6 +94,8 @@ export async function handler(event) {
   );
   await redis.ltrim(prefix + "log:called", 0, 999);
   await redis.expire(prefix + "log:called", LOG_TTL);
+
+  await publish(tenantId, "called", { ticket: next, attendant, ts, wait, name });
 
   return {
     statusCode: 200,

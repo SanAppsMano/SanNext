@@ -28,7 +28,7 @@ const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
-let polling, alertInterval;
+let polling, alertInterval, ablyChannel;
 let lastEventTs = 0;
 let wakeLock = null;
 let silenced   = false;
@@ -93,7 +93,8 @@ btnStart.addEventListener("click", () => {
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   getTicket();
-  polling = setInterval(checkStatus, 2000);
+  setupRealtime();
+  polling = setInterval(checkStatus, 10000);
 });
 
 async function getTicket() {
@@ -232,6 +233,13 @@ async function sendWelcomeNotification() {
   }
 }
 
+function setupRealtime() {
+  if (!tenantId || ablyChannel) return;
+  const realtime = new Ably.Realtime({ authUrl: `/.netlify/functions/ablyToken?t=${tenantId}` });
+  ablyChannel = realtime.channels.get(`tenant:${tenantId}`);
+  ablyChannel.subscribe(() => checkStatus());
+}
+
 btnSilence.addEventListener("click", () => {
   silenced = true;
   clearInterval(alertInterval);
@@ -263,5 +271,6 @@ btnCancel.addEventListener("click", async () => {
 btnJoin.addEventListener("click", () => {
   btnJoin.disabled = true;
   getTicket();
-  polling = setInterval(checkStatus, 2000);
+  setupRealtime();
+  polling = setInterval(checkStatus, 10000);
 });

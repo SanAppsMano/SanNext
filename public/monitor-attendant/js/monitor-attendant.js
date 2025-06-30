@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
+  let ablyChannel;
   let currentCallNum = 0; // último número chamado exibido
   let ticketNames    = {};
   let ticketCounter  = 0;
@@ -344,6 +345,13 @@ function startBouncingCompanyName(text) {
 
   function refreshAll(t) {
     fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); });
+  }
+
+  function setupRealtime(t) {
+    if (!t || ablyChannel) return;
+    const realtime = new Ably.Realtime({ authUrl: '/.netlify/functions/ablyToken?t=' + t });
+    ablyChannel = realtime.channels.get('tenant:' + t);
+    ablyChannel.subscribe(() => refreshAll(t));
   }
 
   async function openReport(t) {
@@ -649,7 +657,8 @@ function startBouncingCompanyName(text) {
     };
     renderQRCode(t);
     refreshAll(t);
-    setInterval(() => refreshAll(t), 5000);
+    setupRealtime(t);
+    setInterval(() => refreshAll(t), 10000);
   }
 
   /** Exibe a interface principal após autenticação */
