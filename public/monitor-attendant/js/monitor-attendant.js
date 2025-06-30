@@ -649,7 +649,7 @@ function startBouncingCompanyName(text) {
     };
     renderQRCode(t);
     refreshAll(t);
-    setInterval(() => refreshAll(t), 7000);
+    setInterval(() => refreshAll(t), 8000);
   }
 
   /** Exibe a interface principal após autenticação */
