@@ -116,6 +116,6 @@ async function fetchCurrent() {
 
 // Polling a cada 2 segundos
 fetchCurrent();
-setInterval(fetchCurrent, 2000);
+setInterval(fetchCurrent, 4000);
 
 requestWakeLock();

@@ -93,7 +93,7 @@ btnStart.addEventListener("click", () => {
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   getTicket();
-  polling = setInterval(checkStatus, 2000);
+  polling = setInterval(checkStatus, 4000);
 });
 
 async function getTicket() {
@@ -263,5 +263,5 @@ btnCancel.addEventListener("click", async () => {
 btnJoin.addEventListener("click", () => {
   btnJoin.disabled = true;
   getTicket();
-  polling = setInterval(checkStatus, 2000);
+  polling = setInterval(checkStatus, 4000);
 });
