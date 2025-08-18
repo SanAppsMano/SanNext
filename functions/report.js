@@ -113,6 +113,7 @@ export async function handler(event) {
       ...prev,
       called: c.ts,
       attendant: c.attendant || prev.attendant,
+      identifier: c.attendant || prev.identifier,
     };
   });
   attended.forEach(a => {

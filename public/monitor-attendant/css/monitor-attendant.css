@@ -468,8 +468,12 @@ body {
   margin-top: 1rem;
   text-align: right;
 }
+#report-modal .modal-content {
+  overflow-x: auto;
+}
 #report-modal table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -484,6 +488,7 @@ body {
 }
 #report-modal th {
   background: #f0f0f0;
+  white-space: nowrap;
 }
 #report-modal .close {
   float: right;
