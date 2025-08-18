@@ -435,7 +435,7 @@ function startBouncingCompanyName(text) {
       tr.innerHTML = `
         <td>${tk.ticket}</td>
         <td>${tk.name || ''}</td>
-        <td>${tk.identifier || ''}</td>
+        <td>${tk.identifier || tk.attendant || ''}</td>
         <td>${label(tk.status)}</td>
         <td>${tk.enteredBr || fmt(tk.entered)}</td>
         <td>${tk.calledBr || fmt(tk.called)}</td>
@@ -464,7 +464,7 @@ function startBouncingCompanyName(text) {
       const rows = [];
       rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
       tickets.forEach((tk,idx)=>{
-        const vals=[tk.ticket,tk.name||'',tk.identifier||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const vals=[tk.ticket,tk.name||'',tk.identifier||tk.attendant||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
         const r=idx+2;
         rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
       });
@@ -580,7 +580,7 @@ function startBouncingCompanyName(text) {
         drawRow([
           tk.ticket,
           tk.name || '',
-          tk.identifier || '',
+          tk.identifier || tk.attendant || '',
           label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
           tk.calledBr || fmt(tk.called) || '',

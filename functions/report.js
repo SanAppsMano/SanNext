@@ -107,12 +107,14 @@ export async function handler(event) {
   entered.forEach((e) => {
     map[e.ticket] = { ...(map[e.ticket] || { ticket: e.ticket }), entered: e.ts };
   });
-  called.forEach(c => {
+  // Processa chamadas em ordem cronológica para preservar o primeiro identificador
+  called.slice().reverse().forEach(c => {
     const prev = map[c.ticket] || { ticket: c.ticket };
     map[c.ticket] = {
       ...prev,
       called: c.ts,
       attendant: c.attendant || prev.attendant,
+      // mantém identificador previamente definido quando chamadas posteriores não informam
       identifier: c.identifier || c.attendant || prev.identifier,
     };
   });
