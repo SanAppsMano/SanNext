@@ -627,7 +627,10 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
+      const id = attendantInput.value.trim();
+      let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
+      if (id) url += `&id=${encodeURIComponent(id)}`;
+      const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
       refreshAll(t);
     };
