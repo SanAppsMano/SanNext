@@ -108,9 +108,11 @@ export async function handler(event) {
     map[e.ticket] = { ...(map[e.ticket] || { ticket: e.ticket }), entered: e.ts };
   });
   called.forEach(c => {
+    const prev = map[c.ticket] || { ticket: c.ticket };
     map[c.ticket] = {
-      ...(map[c.ticket] || { ticket: c.ticket }),
+      ...prev,
       called: c.ts,
+      attendant: c.attendant || prev.attendant,
     };
   });
   attended.forEach(a => {
