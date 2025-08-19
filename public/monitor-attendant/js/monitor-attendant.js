@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardPassword = document.getElementById('onboard-password');
   const onboardSubmit   = document.getElementById('onboard-submit');
   const onboardError    = document.getElementById('onboard-error');
+  const onboardSuccess  = document.getElementById('onboard-success');
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
@@ -779,7 +780,12 @@ function startBouncingCompanyName(text) {
         cfg = { token, empresa: label, senha: pw };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
-        showApp(label, token);
+        onboardSuccess.textContent = 'Monitor criado com sucesso!';
+        onboardSuccess.hidden = false;
+        setTimeout(() => {
+          onboardSuccess.hidden = true;
+          showApp(label, token);
+        }, 2000);
       } catch (e) {
         console.error(e);
         onboardError.textContent = 'Erro ao criar monitor.';
