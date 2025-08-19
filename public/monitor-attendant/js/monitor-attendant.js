@@ -541,8 +541,8 @@ function startBouncingCompanyName(text) {
 
       doc.setFontSize(16);
       doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
-      doc.setFontSize(10);
-      doc.text(`Gerado em: ${nowStr}`, 105, 22, { align: 'center' });
+      doc.setFontSize(10);      
+      doc.text(`Gerado em: ${nowStr} - by SanNext`, 105, 22, { align: 'center' });
 
       let y = 30;
       doc.setFontSize(12);
