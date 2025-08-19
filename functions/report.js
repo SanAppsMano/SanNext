@@ -98,19 +98,39 @@ export async function handler(event) {
     });
     return result;
   }
-  const [enteredTimes, calledTimes, attendedTimes, cancelledTimes] = await Promise.all([
+  async function loadStrings(prefixKey) {
+    const keys = [];
+    for (let i = 1; i <= ticketCounter; i++) {
+      keys.push(prefix + `${prefixKey}:${i}`);
+    }
+    const values = await redis.mget(...keys);
+    const result = {};
+    values.forEach((val, idx) => {
+      if (val !== null && val !== undefined) {
+        result[idx + 1] = String(val);
+      }
+    });
+    return result;
+  }
+  const [enteredTimes, calledTimes, attendedTimes, cancelledTimes, identifiers] = await Promise.all([
     loadTimes('ticketTime'),
     loadTimes('calledTime'),
     loadTimes('attendedTime'),
     loadTimes('cancelledTime'),
+    loadStrings('identifier'),
   ]);
   entered.forEach((e) => {
     map[e.ticket] = { ...(map[e.ticket] || { ticket: e.ticket }), entered: e.ts };
   });
-  called.forEach(c => {
+  // Processa chamadas em ordem cronológica para preservar o primeiro identificador
+  called.slice().reverse().forEach(c => {
+    const prev = map[c.ticket] || { ticket: c.ticket };
     map[c.ticket] = {
-      ...(map[c.ticket] || { ticket: c.ticket }),
+      ...prev,
       called: c.ts,
+      attendant: c.attendant || prev.attendant,
+      // mantém identificador previamente definido quando chamadas posteriores não informam
+      identifier: c.identifier || c.attendant || prev.identifier,
     };
   });
   attended.forEach(a => {
@@ -134,6 +154,7 @@ export async function handler(event) {
     if (!tk.called && calledTimes[i]) tk.called = calledTimes[i];
     if (!tk.attended && attendedTimes[i]) tk.attended = attendedTimes[i];
     if (!tk.cancelled && cancelledTimes[i]) tk.cancelled = cancelledTimes[i];
+    if (!tk.identifier && identifiers[i]) tk.identifier = identifiers[i];
   }
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);

@@ -406,7 +406,21 @@ function startBouncingCompanyName(text) {
 
     // Monta tabela
     const table = document.getElementById('report-table');
-    table.innerHTML = '<thead><tr><th>Ticket</th><th>Nome</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Nome</th>
+          <th>Identificador</th>
+          <th>Status</th>
+          <th>Entrada</th>
+          <th>Chamada</th>
+          <th>Atendido</th>
+          <th>Cancelado</th>
+          <th>Espera</th>
+          <th>Duração</th>
+        </tr>
+      </thead>`;
     const tbody = document.createElement('tbody');
     const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
     const label = (st) => ({
@@ -421,6 +435,7 @@ function startBouncingCompanyName(text) {
       tr.innerHTML = `
         <td>${tk.ticket}</td>
         <td>${tk.name || ''}</td>
+        <td>${tk.identifier || tk.attendant || ''}</td>
         <td>${label(tk.status)}</td>
         <td>${tk.enteredBr || fmt(tk.entered)}</td>
         <td>${tk.calledBr || fmt(tk.called)}</td>
@@ -445,11 +460,11 @@ function startBouncingCompanyName(text) {
       const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const col = (i) => String.fromCharCode(65 + i);
 
-      const headers = ['Ticket','Nome','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const headers = ['Ticket','Nome','Identificador','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
       const rows = [];
       rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
       tickets.forEach((tk,idx)=>{
-        const vals=[tk.ticket,tk.name||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const vals=[tk.ticket,tk.name||'',tk.identifier||tk.attendant||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
         const r=idx+2;
         rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
       });
@@ -526,8 +541,8 @@ function startBouncingCompanyName(text) {
 
       doc.setFontSize(16);
       doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
-      doc.setFontSize(10);
-      doc.text(`Gerado em: ${nowStr}`, 105, 22, { align: 'center' });
+      doc.setFontSize(10);      
+      doc.text(`Gerado em: ${nowStr} - by SanNext`, 105, 22, { align: 'center' });
 
       let y = 30;
       doc.setFontSize(12);
@@ -542,8 +557,8 @@ function startBouncingCompanyName(text) {
       ];
       summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
-      const headers = ['Ticket','Nome','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [15, 40, 25, 30, 30, 30, 30, 25, 25];
+      const headers = ['Ticket','Nome','Identificador','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const colW = [14, 40, 27, 25, 30, 30, 30, 30, 25, 25];
       const startX = 20;
       const rowH = 9;
       const drawRow = (vals, yPos, bold = false) => {
@@ -565,6 +580,7 @@ function startBouncingCompanyName(text) {
         drawRow([
           tk.ticket,
           tk.name || '',
+          tk.identifier || tk.attendant || '',
           label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
           tk.calledBr || fmt(tk.called) || '',
@@ -611,7 +627,10 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
+      const id = attendantInput.value.trim();
+      let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
+      if (id) url += `&id=${encodeURIComponent(id)}`;
+      const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
       refreshAll(t);
     };

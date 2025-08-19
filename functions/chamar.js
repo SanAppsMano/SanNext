@@ -12,7 +12,7 @@ export async function handler(event) {
   const redis     = Redis.fromEnv();
   const prefix    = `tenant:${tenantId}:`;
   const paramNum  = url.searchParams.get("num");
-  const attendant = url.searchParams.get("id") || "";
+  const identifier = url.searchParams.get("id") || "";
 
   const counterKey = prefix + "callCounter";
   const prevCounter = Number(await redis.get(counterKey) || 0);
@@ -74,28 +74,30 @@ export async function handler(event) {
     // mantém ticketTime registrado para o relatório
   }
   // Atualiza dados da chamada em um único comando
-  await redis.mset({
+  const updateData = {
     [prefix + `wait:${next}`]: wait,
     [prefix + "currentCall"]: next,
     [prefix + "currentCallTs"]: ts,
     [prefix + `calledTime:${next}`]: ts,
-  });
-  if (attendant) {
-    await redis.set(prefix + "currentAttendant", attendant);
+  };
+  if (identifier) {
+    updateData[prefix + `identifier:${next}`] = identifier;
+    updateData[prefix + "currentAttendant"] = identifier;
   }
+  await redis.mset(updateData);
 
   const name = await redis.hget(prefix + "ticketNames", String(next));
 
   // Log de chamada
   await redis.lpush(
     prefix + "log:called",
-    JSON.stringify({ ticket: next, attendant, ts, wait, name })
+    JSON.stringify({ ticket: next, attendant: identifier, identifier, ts, wait, name })
   );
   await redis.ltrim(prefix + "log:called", 0, 999);
   await redis.expire(prefix + "log:called", LOG_TTL);
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ called: next, attendant, ts, wait, name }),
+    body: JSON.stringify({ called: next, attendant: identifier, identifier, ts, wait, name }),
   };
 }
