@@ -490,6 +490,10 @@ body {
   background: #f0f0f0;
   white-space: nowrap;
 }
+#report-modal th:nth-child(3),
+#report-modal td:nth-child(3) {
+  min-width: 110px;
+}
 #report-modal .close {
   float: right;
   font-size: 1.25rem;

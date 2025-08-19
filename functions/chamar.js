@@ -74,15 +74,17 @@ export async function handler(event) {
     // mantém ticketTime registrado para o relatório
   }
   // Atualiza dados da chamada em um único comando
-  await redis.mset({
+  const updateData = {
     [prefix + `wait:${next}`]: wait,
     [prefix + "currentCall"]: next,
     [prefix + "currentCallTs"]: ts,
     [prefix + `calledTime:${next}`]: ts,
-  });
+  };
   if (identifier) {
-    await redis.set(prefix + "currentAttendant", identifier);
+    updateData[prefix + `identifier:${next}`] = identifier;
+    updateData[prefix + "currentAttendant"] = identifier;
   }
+  await redis.mset(updateData);
 
   const name = await redis.hget(prefix + "ticketNames", String(next));
 
