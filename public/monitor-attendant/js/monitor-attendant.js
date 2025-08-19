@@ -558,7 +558,7 @@ function startBouncingCompanyName(text) {
       summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
       const headers = ['Ticket','Nome','Identificador','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [15, 40, 25, 25, 30, 30, 30, 30, 25, 25];
+      const colW = [15, 40, 30, 25, 30, 30, 30, 30, 25, 25];
       const startX = 20;
       const rowH = 9;
       const drawRow = (vals, yPos, bold = false) => {
