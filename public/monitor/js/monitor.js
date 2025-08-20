@@ -16,6 +16,7 @@ let lastId   = '';
 const alertSound   = document.getElementById('alert-sound');
 const unlockOverlay = document.getElementById('unlock-overlay');
 let wakeLock = null;
+let intervalId = null;
 
 // Desbloqueia o audio na primeira interação do usuário para evitar
 // que o navegador bloqueie a execução do som de alerta
@@ -59,7 +60,15 @@ function releaseWakeLock() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) requestWakeLock();
+  if (document.hidden) {
+    clearInterval(intervalId);
+    intervalId = null;
+  } else {
+    requestWakeLock();
+    fetchCurrent();
+    clearInterval(intervalId);
+    intervalId = setInterval(fetchCurrent, 4000);
+  }
 });
 
 window.addEventListener('beforeunload', () => {
@@ -116,6 +125,6 @@ async function fetchCurrent() {
 
 // Polling a cada 4 segundos
 fetchCurrent();
-setInterval(fetchCurrent, 4000);
+intervalId = setInterval(fetchCurrent, 4000);
 
 requestWakeLock();
