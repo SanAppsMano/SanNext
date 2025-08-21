@@ -9,9 +9,16 @@ export async function handler(event) {
     return { statusCode: 400, body: "Missing tenantId" };
   }
 
-  const { clientId, reason = "client", duration } = JSON.parse(event.body || "{}");
   const redis  = Redis.fromEnv();
+  const [pwHash, monitor] = await redis.mget(
+    `tenant:${tenantId}:pwHash`,
+    `monitor:${tenantId}`
+  );
+  if (!pwHash && !monitor) {
+    return { statusCode: 404, body: "Invalid link" };
+  }
   const prefix = `tenant:${tenantId}:`;
+  const { clientId, reason = "client", duration } = JSON.parse(event.body || "{}");
 
   // Recupera e remove ticket do cliente
   const ticketNum = await redis.get(prefix + `ticket:${clientId}`);
