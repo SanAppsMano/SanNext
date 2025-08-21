@@ -36,6 +36,13 @@ exports.handler = async (event) => {
       token,
       { ex: ttl }
     );
+    if (schedule) {
+      await redis.set(
+        `tenant:${token}:schedule`,
+        JSON.stringify(schedule),
+        { ex: ttl }
+      );
+    }
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true, expiresIn: ttl })

@@ -12,6 +12,16 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing token' }) };
   }
   try {
+    const schedRaw = await redis.get(`tenant:${token}:schedule`);
+    if (schedRaw) {
+      let parsed;
+      try {
+        parsed = typeof schedRaw === 'string' ? JSON.parse(schedRaw) : schedRaw;
+      } catch {
+        return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos' }) };
+      }
+      return { statusCode: 200, body: JSON.stringify({ schedule: parsed }) };
+    }
     const data = await redis.get(`monitor:${token}`);
     if (!data) {
       return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
