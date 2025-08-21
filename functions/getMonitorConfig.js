@@ -48,6 +48,6 @@ exports.handler = async (event) => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ empresa: stored.empresa })
+    body: JSON.stringify({ empresa: stored.empresa, schedule: stored.schedule })
   };
 };

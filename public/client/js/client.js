@@ -33,6 +33,33 @@ let lastEventTs = 0;
 let wakeLock = null;
 let silenced   = false;
 let callStartTs = 0;
+let schedule = null;
+
+async function fetchSchedule() {
+  try {
+    const res = await fetch(`/.netlify/functions/getSchedule?t=${tenantId}`);
+    if (res.ok) {
+      const data = await res.json();
+      schedule = data.schedule;
+    }
+  } catch (e) {
+    console.error('schedule', e);
+  }
+}
+
+function withinSchedule() {
+  if (!schedule) return true;
+  const now = new Date();
+  const day = now.getDay();
+  if (!schedule.days || !schedule.days.includes(day)) return false;
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const toMins = t => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const inInterval = ({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end);
+  return Array.isArray(schedule.intervals) && schedule.intervals.some(inInterval);
+}
 
 async function requestWakeLock() {
   if (!('wakeLock' in navigator) || wakeLock) return;
@@ -83,7 +110,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && ticketNumber) requestWakeLock();
 });
 
-btnStart.addEventListener("click", () => {
+btnStart.addEventListener("click", async () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
@@ -92,8 +119,10 @@ btnStart.addEventListener("click", () => {
   btnJoin.hidden = true;
   btnCancel.hidden = false;
   btnCancel.disabled = false;
-  getTicket();
+  await getTicket();
+  await fetchSchedule();
   polling = setInterval(checkStatus, 4000);
+  checkStatus();
 });
 
 async function getTicket() {
@@ -114,6 +143,10 @@ async function getTicket() {
 
 async function checkStatus() {
   if (!ticketNumber) return;
+  if (!withinSchedule()) {
+    statusEl.textContent = "Fora do horário de atendimento.";
+    return;
+  }
   const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
   const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
   const myName = names[ticketNumber];

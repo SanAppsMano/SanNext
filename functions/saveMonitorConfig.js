@@ -18,7 +18,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
 
-  const { token, empresa, senha, trialDays } = body;
+  const { token, empresa, senha, trialDays, schedule } = body;
   if (!token || !empresa || !senha) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados incompletos' }) };
   }
@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   try {
     await redis.set(
       `monitor:${token}`,
-      JSON.stringify({ empresa, senha }),
+      JSON.stringify({ empresa, senha, schedule }),
       { ex: ttl }
     );
     await redis.set(
