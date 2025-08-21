@@ -42,9 +42,23 @@ const defaultSchedule = {
   ]
 };
 
+async function safeFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 404 || res.status === 410) {
+    handleExit('Procedimento inválido. Solicite um novo link ou QR.');
+    btnJoin.disabled = true;
+    return null;
+  }
+  return res;
+}
+
 async function fetchSchedule() {
   try {
-    const res = await fetch(`/.netlify/functions/getSchedule?t=${tenantId}`);
+    const res = await safeFetch(`/.netlify/functions/getSchedule?t=${tenantId}`);
+    if (!res) {
+      schedule = defaultSchedule;
+      return;
+    }
     if (res.ok) {
       const data = await res.json();
       schedule = data.schedule || defaultSchedule;
@@ -194,7 +208,8 @@ btnStart.addEventListener("click", async () => {
 });
 
 async function getTicket() {
-  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  if (!res) return;
   const data = await res.json();
   clientId     = data.clientId;
   ticketNumber = data.ticketNumber;
@@ -217,7 +232,8 @@ async function checkStatus() {
     schedulePolling();
     return;
   }
-  const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
+  const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
+  if (!res) return;
   const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
   const myName = names[ticketNumber];
 
@@ -238,11 +254,12 @@ async function checkStatus() {
 
   if (currentCall > ticketNumber) {
     const duration = callStartTs ? Date.now() - callStartTs : 0;
-    const res = await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+    const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId, reason: "missed", duration })
     });
+    if (!res) return;
     let msg = "Você perdeu a vez.";
     try {
       const data = await res.json();
@@ -353,11 +370,12 @@ btnCancel.addEventListener("click", async () => {
   statusEl.textContent = "Cancelando...";
   clearInterval(alertInterval);
 
-  await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+  const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, reason: "client" })
   });
+  if (!res) return;
 
   releaseWakeLock();
   handleExit("Você saiu da fila.");
