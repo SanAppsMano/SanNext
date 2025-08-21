@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let pollingId;
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
     if (!ms) return '-';
@@ -618,6 +619,15 @@ function startBouncingCompanyName(text) {
 
   /** Inicializa botões e polling */
   function initApp(t) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        clearInterval(pollingId);
+      } else {
+        refreshAll(t);
+        pollingId = setInterval(() => refreshAll(t), 8000);
+      }
+    });
+
     btnNext.onclick = async () => {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
@@ -668,7 +678,8 @@ function startBouncingCompanyName(text) {
     };
     renderQRCode(t);
     refreshAll(t);
-    setInterval(() => refreshAll(t), 8000);
+    clearInterval(pollingId);
+    pollingId = setInterval(() => refreshAll(t), 8000);
   }
 
   /** Exibe a interface principal após autenticação */
