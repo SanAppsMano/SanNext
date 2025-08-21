@@ -28,7 +28,7 @@ const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
-let polling, alertInterval;
+let polling, alertInterval, resumeTimeout;
 let lastEventTs = 0;
 let wakeLock = null;
 let silenced   = false;
@@ -61,6 +61,40 @@ function withinSchedule() {
   return Array.isArray(schedule.intervals) && schedule.intervals.some(inInterval);
 }
 
+function msUntilNextInterval() {
+  if (!schedule) return null;
+  const now = new Date();
+  const intervals = (schedule.intervals || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+  for (let offset = 0; offset < 7; offset++) {
+    const day = (now.getDay() + offset) % 7;
+    if (!schedule.days || !schedule.days.includes(day)) continue;
+    for (const { start } of intervals) {
+      if (!start) continue;
+      const [h, m] = start.split(':').map(Number);
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() + offset);
+      startDate.setHours(h, m, 0, 0);
+      if (startDate > now) return startDate - now;
+    }
+  }
+  return null;
+}
+
+function schedulePolling() {
+  clearInterval(polling);
+  clearTimeout(resumeTimeout);
+  if (!schedule || withinSchedule()) {
+    polling = setInterval(checkStatus, 4000);
+    checkStatus();
+  } else {
+    statusEl.textContent = "Fora do horário de atendimento.";
+    const ms = msUntilNextInterval();
+    if (ms != null) {
+      resumeTimeout = setTimeout(schedulePolling, ms);
+    }
+  }
+}
+
 async function requestWakeLock() {
   if (!('wakeLock' in navigator) || wakeLock) return;
   try {
@@ -81,6 +115,7 @@ function releaseWakeLock() {
 function handleExit(msg) {
   clearInterval(polling);
   clearInterval(alertInterval);
+  clearTimeout(resumeTimeout);
   ticketNumber = null;
   callStartTs = 0;
   lastEventTs = 0;
@@ -121,8 +156,7 @@ btnStart.addEventListener("click", async () => {
   btnCancel.disabled = false;
   await getTicket();
   await fetchSchedule();
-  polling = setInterval(checkStatus, 4000);
-  checkStatus();
+  schedulePolling();
 });
 
 async function getTicket() {
@@ -145,6 +179,8 @@ async function checkStatus() {
   if (!ticketNumber) return;
   if (!withinSchedule()) {
     statusEl.textContent = "Fora do horário de atendimento.";
+    clearInterval(polling);
+    schedulePolling();
     return;
   }
   const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
@@ -293,8 +329,9 @@ btnCancel.addEventListener("click", async () => {
   handleExit("Você saiu da fila.");
 });
 
-btnJoin.addEventListener("click", () => {
+btnJoin.addEventListener("click", async () => {
   btnJoin.disabled = true;
-  getTicket();
-  polling = setInterval(checkStatus, 4000);
+  await getTicket();
+  await fetchSchedule();
+  schedulePolling();
 });
