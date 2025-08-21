@@ -45,6 +45,22 @@ exports.handler = async (event) => {
       keys.push(`monitorByEmpresa:${empresa.toLowerCase()}`);
     }
     await redis.del(...keys);
+
+    // Apaga todas as chaves do tenant (contadores, senha, label, tickets, logs...)
+    // usando SCAN/DEL para remover conjuntos e hashes da fila
+    const prefix = `tenant:${token}:`;
+    let cursor = 0;
+    do {
+      const [next, found] = await redis.scan(cursor, {
+        match: `${prefix}*`,
+        count: 100,
+      });
+      if (found.length > 0) {
+        await redis.del(...found);
+      }
+      cursor = Number(next);
+    } while (cursor !== 0);
+
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true })

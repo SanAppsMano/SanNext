@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Nenhum monitor ativo para resetar.');
       return;
     }
-    if (!confirm('Deseja realmente apagar empresa e senha do servidor?')) return;
+    if (!confirm('Deseja realmente apagar empresa e senha do servidor? Todos os links e dados da fila serão invalidados.')) return;
     try {
       const res = await fetch(`${location.origin}/.netlify/functions/deleteMonitorConfig`, {
         method: 'POST',
