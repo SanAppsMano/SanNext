@@ -11,6 +11,13 @@ export async function handler(event) {
   }
 
   const redis  = Redis.fromEnv();
+  const [pwHash, monitor] = await redis.mget(
+    `tenant:${tenantId}:pwHash`,
+    `monitor:${tenantId}`
+  );
+  if (!pwHash && !monitor) {
+    return { statusCode: 404, body: "Invalid link" };
+  }
   const prefix = `tenant:${tenantId}:`;
   const ts     = Date.now();
 
