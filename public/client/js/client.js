@@ -34,21 +34,31 @@ let wakeLock = null;
 let silenced   = false;
 let callStartTs = 0;
 let schedule = null;
+const defaultSchedule = {
+  days: [1, 2, 3, 4, 5],
+  intervals: [
+    { start: '09:00', end: '12:00' },
+    { start: '13:00', end: '18:00' }
+  ]
+};
 
 async function fetchSchedule() {
   try {
     const res = await fetch(`/.netlify/functions/getSchedule?t=${tenantId}`);
     if (res.ok) {
       const data = await res.json();
-      schedule = data.schedule;
+      schedule = data.schedule || defaultSchedule;
+    } else {
+      schedule = defaultSchedule;
     }
   } catch (e) {
     console.error('schedule', e);
+    schedule = defaultSchedule;
   }
 }
 
 function withinSchedule() {
-  if (!schedule) return true;
+  if (!schedule) return false;
   const now = new Date();
   const day = now.getDay();
   if (!schedule.days || !schedule.days.includes(day)) return false;
@@ -81,9 +91,12 @@ function msUntilNextInterval() {
 }
 
 function schedulePolling() {
-  clearInterval(polling);
+  if (polling) {
+    clearInterval(polling);
+    polling = null;
+  }
   clearTimeout(resumeTimeout);
-  if (!schedule || withinSchedule()) {
+  if (withinSchedule()) {
     polling = setInterval(checkStatus, 4000);
     checkStatus();
   } else {
