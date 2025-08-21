@@ -28,7 +28,7 @@ const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
-let polling, alertInterval, resumeTimeout;
+let polling, alertInterval, resumeTimeout, countdownInterval;
 let lastEventTs = 0;
 let wakeLock = null;
 let silenced   = false;
@@ -62,23 +62,27 @@ function withinSchedule() {
   const now = new Date();
   const day = now.getDay();
   if (!schedule.days || !schedule.days.includes(day)) return false;
+  // Sem intervalos marcados: dia inteiro liberado
+  if (!schedule.intervals || schedule.intervals.length === 0) return true;
   const mins = now.getHours() * 60 + now.getMinutes();
   const toMins = t => {
     const [h, m] = t.split(':').map(Number);
     return h * 60 + m;
   };
   const inInterval = ({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end);
-  return Array.isArray(schedule.intervals) && schedule.intervals.some(inInterval);
+  return schedule.intervals.some(inInterval);
 }
 
 function msUntilNextInterval() {
   if (!schedule) return null;
   const now = new Date();
-  const intervals = (schedule.intervals || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const baseIntervals = (schedule.intervals && schedule.intervals.length)
+    ? schedule.intervals.slice().sort((a, b) => a.start.localeCompare(b.start))
+    : [{ start: '00:00' }];
   for (let offset = 0; offset < 7; offset++) {
     const day = (now.getDay() + offset) % 7;
     if (!schedule.days || !schedule.days.includes(day)) continue;
-    for (const { start } of intervals) {
+    for (const { start } of baseIntervals) {
       if (!start) continue;
       const [h, m] = start.split(':').map(Number);
       const startDate = new Date(now);
@@ -96,14 +100,30 @@ function schedulePolling() {
     polling = null;
   }
   clearTimeout(resumeTimeout);
+  clearInterval(countdownInterval);
   if (withinSchedule()) {
     polling = setInterval(checkStatus, 4000);
     checkStatus();
   } else {
-    statusEl.textContent = "Fora do horário de atendimento.";
     const ms = msUntilNextInterval();
     if (ms != null) {
-      resumeTimeout = setTimeout(schedulePolling, ms);
+      const target = Date.now() + ms;
+      const update = () => {
+        const diff = target - Date.now();
+        if (diff <= 0) return;
+        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+        statusEl.textContent = `Fora do horário de atendimento. Retorna em ${h}:${m}:${s}`;
+      };
+      update();
+      countdownInterval = setInterval(update, 1000);
+      resumeTimeout = setTimeout(() => {
+        clearInterval(countdownInterval);
+        schedulePolling();
+      }, ms);
+    } else {
+      statusEl.textContent = "Fora do horário de atendimento.";
     }
   }
 }
@@ -129,6 +149,7 @@ function handleExit(msg) {
   clearInterval(polling);
   clearInterval(alertInterval);
   clearTimeout(resumeTimeout);
+  clearInterval(countdownInterval);
   ticketNumber = null;
   callStartTs = 0;
   lastEventTs = 0;
