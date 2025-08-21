@@ -41,14 +41,20 @@
           <label><input type="checkbox" name="work-day" value="6">Sáb</label>
           <label><input type="checkbox" name="work-day" value="0">Dom</label>
         </div>
-        <label>Início (manhã)</label>
-        <input id="start1" type="time" value="09:00" />
-        <label>Fim (manhã)</label>
-        <input id="end1" type="time" value="12:00" />
-        <label>Início (tarde)</label>
-        <input id="start2" type="time" value="13:00" />
-        <label>Fim (tarde)</label>
-        <input id="end2" type="time" value="18:00" />
+        <div class="interval">
+          <label class="interval-toggle"><input type="checkbox" id="use1" checked>Manhã</label>
+          <label>Início</label>
+          <input id="start1" type="time" value="09:00" />
+          <label>Fim</label>
+          <input id="end1" type="time" value="12:00" />
+        </div>
+        <div class="interval">
+          <label class="interval-toggle"><input type="checkbox" id="use2" checked>Tarde</label>
+          <label>Início</label>
+          <input id="start2" type="time" value="13:00" />
+          <label>Fim</label>
+          <input id="end2" type="time" value="18:00" />
+        </div>
       </fieldset>
       <button id="onboard-submit">Criar Monitor</button>
       <div id="onboard-error" class="error"></div>

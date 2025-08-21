@@ -46,6 +46,8 @@ body {
   max-width: 360px;
   text-align: left;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 .onboard-box h2 {
   margin-bottom: 1rem;
@@ -81,6 +83,30 @@ body {
 }
 #onboard-overlay[hidden] {
   display: none !important;
+}
+
+.schedule .days {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.schedule .days label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.schedule .interval {
+  margin-top: 0.5rem;
+}
+
+.schedule .interval-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
 }
 
 

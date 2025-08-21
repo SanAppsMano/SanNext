@@ -36,10 +36,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardSubmit   = document.getElementById('onboard-submit');
   const onboardError    = document.getElementById('onboard-error');
   const scheduleDays    = document.querySelectorAll('input[name="work-day"]');
+  const use1Checkbox    = document.getElementById('use1');
   const start1Input     = document.getElementById('start1');
   const end1Input       = document.getElementById('end1');
+  const use2Checkbox    = document.getElementById('use2');
   const start2Input     = document.getElementById('start2');
   const end2Input       = document.getElementById('end2');
+
+  function toggleInterval(cb, start, end) {
+    const sync = () => {
+      const enabled = cb.checked;
+      start.disabled = end.disabled = !enabled;
+    };
+    cb.addEventListener('change', sync);
+    sync();
+  }
+
+  toggleInterval(use1Checkbox, start1Input, end1Input);
+  toggleInterval(use2Checkbox, start2Input, end2Input);
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
@@ -792,13 +806,10 @@ function startBouncingCompanyName(text) {
         token = crypto.randomUUID().split('-')[0];
         const trialDays = 7;
         const days = Array.from(scheduleDays).filter(d => d.checked).map(d => Number(d.value));
-        const schedule = {
-          days,
-          intervals: [
-            { start: start1Input.value, end: end1Input.value },
-            { start: start2Input.value, end: end2Input.value }
-          ]
-        };
+        const intervals = [];
+        if (use1Checkbox.checked) intervals.push({ start: start1Input.value, end: end1Input.value });
+        if (use2Checkbox.checked) intervals.push({ start: start2Input.value, end: end2Input.value });
+        const schedule = { days, intervals };
         const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
