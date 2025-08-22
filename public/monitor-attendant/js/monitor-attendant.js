@@ -142,6 +142,35 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
+  // Overlay para visualização do PDF gerado
+  const pdfOverlay = document.createElement('div');
+  pdfOverlay.id = 'pdf-overlay';
+  Object.assign(pdfOverlay.style, {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.8)', display: 'none',
+    alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    padding: '1rem'
+  });
+  const pdfIframe = document.createElement('iframe');
+  Object.assign(pdfIframe.style, {
+    border: 'none', width: '90%', height: '90%', borderRadius: '8px',
+    background: '#fff'
+  });
+  pdfOverlay.appendChild(pdfIframe);
+  const pdfClose = document.createElement('button');
+  pdfClose.textContent = '×';
+  Object.assign(pdfClose.style, {
+    position: 'absolute', top: '1rem', right: '1rem',
+    border: 'none', background: '#fff', borderRadius: '50%',
+    width: '2rem', height: '2rem', fontSize: '1.25rem', cursor: 'pointer'
+  });
+  pdfClose.onclick = () => { pdfOverlay.style.display = 'none'; };
+  pdfOverlay.appendChild(pdfClose);
+  pdfOverlay.addEventListener('click', e => {
+    if (e.target === pdfOverlay) pdfOverlay.style.display = 'none';
+  });
+  document.body.appendChild(pdfOverlay);
+
   const btnQrPdf      = document.getElementById('btn-qr-pdf');
   let currentClientUrl = '';
   let qrReady = false;
@@ -242,21 +271,9 @@ function generateQrPdf() {
   y += 10;
   doc.setFontSize(10);
   doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
-
   const dataUri = doc.output('datauristring');
-  const pdfWindow = window.open('', '_blank');
-  if (pdfWindow) {
-    pdfWindow.document.title = cfg.empresa || 'PDF';
-    const iframe = pdfWindow.document.createElement('iframe');
-    iframe.style.border = 'none';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.src = dataUri;
-    pdfWindow.document.body.appendChild(iframe);
-  } else {
-    // fallback caso não seja possível abrir nova janela
-    doc.save(`${(cfg.empresa || 'qr').replace(/\s+/g, '_')}.pdf`);
-  }
+  pdfIframe.src = dataUri;
+  pdfOverlay.style.display = 'flex';
 }
 
 
