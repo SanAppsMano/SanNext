@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerEl       = document.querySelector('.header');
   const mainEl         = document.querySelector('.main');
   const bodyEl         = document.body;
+  const headerSchedule = document.getElementById('header-schedule');
 
   // Onboarding
   const onboardLabel    = document.getElementById('onboard-label');
@@ -54,6 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   toggleInterval(use1Checkbox, start1Input, end1Input);
   toggleInterval(use2Checkbox, start2Input, end2Input);
+
+  // Atualiza relógio no cabeçalho
+  function updateClock() {
+    const now = new Date();
+    headerSchedule.textContent = now.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 60000);
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
@@ -111,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
   const btnView        = document.getElementById('btn-view-monitor');
+  const btnEditSchedule= document.getElementById('btn-edit-schedule');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
@@ -119,6 +132,73 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewModal      = document.getElementById('view-modal');
   const viewClose      = document.getElementById('view-close');
   const viewQrEl       = document.getElementById('view-qrcode');
+  const scheduleModal  = document.getElementById('schedule-modal');
+  const scheduleClose  = document.getElementById('schedule-close');
+  const scheduleSave   = document.getElementById('schedule-save');
+  const editDays       = scheduleModal.querySelectorAll('input[name="work-day"]');
+  const editUse1       = document.getElementById('edit-use1');
+  const editStart1     = document.getElementById('edit-start1');
+  const editEnd1       = document.getElementById('edit-end1');
+  const editUse2       = document.getElementById('edit-use2');
+  const editStart2     = document.getElementById('edit-start2');
+  const editEnd2       = document.getElementById('edit-end2');
+
+  toggleInterval(editUse1, editStart1, editEnd1);
+  toggleInterval(editUse2, editStart2, editEnd2);
+
+  btnEditSchedule.onclick = () => {
+    if (!cfg || !cfg.schedule) return;
+    const s = cfg.schedule;
+    editDays.forEach(d => {
+      d.checked = s.days.includes(Number(d.value));
+    });
+    const i1 = s.intervals[0];
+    const i2 = s.intervals[1];
+    if (i1) {
+      editUse1.checked = true;
+      editStart1.value = i1.start;
+      editEnd1.value   = i1.end;
+    } else {
+      editUse1.checked = false;
+    }
+    if (i2) {
+      editUse2.checked = true;
+      editStart2.value = i2.start;
+      editEnd2.value   = i2.end;
+    } else {
+      editUse2.checked = false;
+    }
+    editUse1.dispatchEvent(new Event('change'));
+    editUse2.dispatchEvent(new Event('change'));
+    scheduleModal.hidden = false;
+  };
+
+  scheduleClose.onclick = () => {
+    scheduleModal.hidden = true;
+  };
+
+  scheduleSave.onclick = async () => {
+    const days = Array.from(editDays).filter(d => d.checked).map(d => Number(d.value));
+    const intervals = [];
+    if (editUse1.checked) intervals.push({ start: editStart1.value, end: editEnd1.value });
+    if (editUse2.checked) intervals.push({ start: editStart2.value, end: editEnd2.value });
+    const schedule = { days, intervals };
+    try {
+      const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error();
+      cfg.schedule = schedule;
+      localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+      scheduleModal.hidden = true;
+    } catch (e) {
+      alert('Erro ao salvar horário.');
+      console.error(e);
+    }
+  };
 
   // Botão de relatório oculto até haver dados
   btnReport.hidden = true;
