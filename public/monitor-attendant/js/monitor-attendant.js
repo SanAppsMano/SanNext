@@ -250,7 +250,11 @@ function generateQrPdf() {
   doc.setFontSize(10);
   doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
   const empresaSlug = sanitizeFileName(cfg.empresa);
+  const blobUrl = doc.output('bloburl');
   doc.save(`${empresaSlug}-instrucoes-fila.pdf`);
+  if (window.confirm('Deseja visualizar o PDF agora?')) {
+    window.open(blobUrl, '_blank');
+  }
 }
 
 
