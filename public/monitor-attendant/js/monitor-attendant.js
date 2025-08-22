@@ -224,9 +224,44 @@ function sanitizeFileName(name) {
     .toLowerCase();
 }
 
+function isMobile() {
+  return /Mobi|Android|iP(ad|hone|od)/i.test(navigator.userAgent) || window.innerWidth <= 768;
+}
+
 function generateQrPdf() {
   const qrImg = qrContainer.querySelector('img');
   if (!qrImg) return;
+  if (isMobile()) {
+    if (!confirm('Deseja abrir o PDF?')) return;
+    const html = `\
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${cfg.empresa || ''}</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; }
+          img { max-width: 100%; }
+        </style>
+      </head>
+      <body>
+        <img src="/img/icon-sannext.png" alt="Logo" style="width:80px;margin-bottom:10px;" />
+        <h1>${cfg.empresa || ''}</h1>
+        <h2>Entre na fila</h2>
+        <img src="${qrImg.src}" alt="QR Code" style="width:200px;height:200px;" />
+        <p>1. Abra a câmera do seu celular.<br>2. Aponte para o QR code.<br>3. Siga o link para pegar sua senha.</p>
+        <p>${currentClientUrl}</p>
+      </body>
+      </html>`;
+    const win = window.open('', '_blank');
+    if (!win) {
+      alert('Não foi possível abrir a nova janela. Verifique o bloqueador de pop-ups.');
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+    win.onload = () => win.print();
+    return;
+  }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -617,17 +652,7 @@ function startBouncingCompanyName(text) {
     };
 
     document.getElementById('export-pdf').onclick = () => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('l', 'mm', 'a4');
       const nowStr = new Date().toLocaleString('pt-BR');
-
-      doc.setFontSize(16);
-      doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
-      doc.setFontSize(10);      
-      doc.text(`Gerado em: ${nowStr} - by SanNext`, 105, 22, { align: 'center' });
-
-      let y = 30;
-      doc.setFontSize(12);
       const summaryLines = [
         `Total de tickets: ${totalTickets}`,
         `Atendidos: ${attendedCount}`,
@@ -637,6 +662,56 @@ function startBouncingCompanyName(text) {
         `Tempo médio de espera: ${avgWaitHms}`,
         `Tempo médio de atendimento: ${avgDurHms}`
       ];
+
+      if (isMobile()) {
+        if (!confirm('Deseja abrir o PDF?')) return;
+        const win = window.open('', '_blank');
+        if (!win) {
+          alert('Não foi possível abrir a nova janela. Verifique o bloqueador de pop-ups.');
+          return;
+        }
+        const summaryHtml = summaryLines.map(line => `<p>${line}</p>`).join('');
+        const tableHtml = table.outerHTML;
+        const chartImg = reportChartEl.toDataURL('image/png');
+        const html = `
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Relatório - ${cfg?.empresa || ''}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 1rem; }
+              h1 { text-align: center; }
+              table { border-collapse: collapse; width: 100%; font-size: 12px; }
+              th, td { border: 1px solid #000; padding: 4px; }
+              img { max-width: 100%; }
+              .summary p { margin: 0; }
+            </style>
+          </head>
+          <body>
+            <img src="/img/icon-sannext.png" alt="Logo" style="width:80px;display:block;margin:0 auto 10px;" />
+            <h1>Relatório - ${cfg?.empresa || ''}</h1>
+            <p style="text-align:center;">Gerado em: ${nowStr} - by SanNext</p>
+            <div class="summary">${summaryHtml}</div>
+            ${tableHtml}
+            <img src="${chartImg}" alt="Gráfico" />
+          </body>
+          </html>`;
+        win.document.write(html);
+        win.document.close();
+        win.onload = () => win.print();
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('l', 'mm', 'a4');
+
+      doc.setFontSize(16);
+      doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${nowStr} - by SanNext`, 105, 22, { align: 'center' });
+
+      let y = 30;
+      doc.setFontSize(12);
       summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
       const headers = ['Ticket','Nome','Identificador','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
