@@ -872,6 +872,10 @@ function startBouncingCompanyName(text) {
     });
 
     btnNext.onclick = async () => {
+      if (currentCallNum > 0 &&
+          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
+        return;
+      }
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
