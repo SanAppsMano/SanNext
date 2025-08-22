@@ -46,6 +46,8 @@ body {
   max-width: 360px;
   text-align: left;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 .onboard-box h2 {
   margin-bottom: 1rem;
@@ -81,6 +83,43 @@ body {
 }
 #onboard-overlay[hidden] {
   display: none !important;
+}
+
+.schedule .days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.schedule .days-grid label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.schedule .interval-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.schedule .interval-row input[type="time"] {
+  flex: 1;
+}
+
+.schedule .interval-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
+.schedule .dash {
+  color: var(--muted);
 }
 
 

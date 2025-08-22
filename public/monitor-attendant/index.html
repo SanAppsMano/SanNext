@@ -30,6 +30,30 @@
       <input id="onboard-label" type="text" placeholder="Ex: Loja XYZ" />
       <label>Senha de Acesso</label>
       <input id="onboard-password" type="password" placeholder="Defina uma senha" autocomplete="new-password" />
+      <fieldset class="schedule">
+        <legend>Horário de Atendimento</legend>
+        <div class="days-grid">
+          <label><input type="checkbox" name="work-day" value="1" checked><span>Seg</span></label>
+          <label><input type="checkbox" name="work-day" value="2" checked><span>Ter</span></label>
+          <label><input type="checkbox" name="work-day" value="3" checked><span>Qua</span></label>
+          <label><input type="checkbox" name="work-day" value="4" checked><span>Qui</span></label>
+          <label><input type="checkbox" name="work-day" value="5" checked><span>Sex</span></label>
+          <label><input type="checkbox" name="work-day" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" name="work-day" value="0"><span>Dom</span></label>
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="use1" checked><span>Manhã</span></label>
+          <input id="start1" type="time" value="08:00" />
+          <span class="dash">às</span>
+          <input id="end1" type="time" value="12:00" />
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="use2" checked><span>Tarde</span></label>
+          <input id="start2" type="time" value="14:00" />
+          <span class="dash">às</span>
+          <input id="end2" type="time" value="18:00" />
+        </div>
+      </fieldset>
       <button id="onboard-submit">Criar Monitor</button>
       <div id="onboard-error" class="error"></div>
     </div>

@@ -12,8 +12,13 @@ export async function handler(event) {
     }
 
     const redis = Redis.fromEnv();
-    const hashKey = `tenant:${tenantId}:pwHash`;
-    const storedHash = await redis.get(hashKey);
+    const [storedHash, monitor] = await redis.mget(
+      `tenant:${tenantId}:pwHash`,
+      `monitor:${tenantId}`
+    );
+    if (!storedHash && !monitor) {
+      return { statusCode: 404, body: JSON.stringify({ error: 'Invalid link' }) };
+    }
     if (!storedHash) {
       return { statusCode: 404, body: JSON.stringify({ valid: false }) };
     }

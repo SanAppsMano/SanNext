@@ -28,11 +28,119 @@ const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
-let polling, alertInterval;
+let polling, alertInterval, resumeTimeout, countdownInterval;
 let lastEventTs = 0;
 let wakeLock = null;
 let silenced   = false;
 let callStartTs = 0;
+let schedule = null;
+const defaultSchedule = {
+  days: [1, 2, 3, 4, 5],
+  intervals: [
+    { start: '09:00', end: '12:00' },
+    { start: '13:00', end: '18:00' }
+  ]
+};
+
+async function safeFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 404 || res.status === 410) {
+    handleExit('Procedimento inválido. Solicite um novo link ou QR.');
+    btnJoin.disabled = true;
+    return null;
+  }
+  return res;
+}
+
+async function fetchSchedule() {
+  try {
+    const res = await safeFetch(`/.netlify/functions/getSchedule?t=${tenantId}`);
+    if (!res) {
+      schedule = defaultSchedule;
+      return;
+    }
+    if (res.ok) {
+      const data = await res.json();
+      schedule = data.schedule || defaultSchedule;
+    } else {
+      schedule = defaultSchedule;
+    }
+  } catch (e) {
+    console.error('schedule', e);
+    schedule = defaultSchedule;
+  }
+}
+
+function withinSchedule() {
+  if (!schedule) return false;
+  const now = new Date();
+  const day = now.getDay();
+  if (!schedule.days || !schedule.days.includes(day)) return false;
+  // Sem intervalos marcados: dia inteiro liberado
+  if (!schedule.intervals || schedule.intervals.length === 0) return true;
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const toMins = t => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const inInterval = ({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end);
+  return schedule.intervals.some(inInterval);
+}
+
+function msUntilNextInterval() {
+  if (!schedule) return null;
+  const now = new Date();
+  const baseIntervals = (schedule.intervals && schedule.intervals.length)
+    ? schedule.intervals.slice().sort((a, b) => a.start.localeCompare(b.start))
+    : [{ start: '00:00' }];
+  for (let offset = 0; offset < 7; offset++) {
+    const day = (now.getDay() + offset) % 7;
+    if (!schedule.days || !schedule.days.includes(day)) continue;
+    for (const { start } of baseIntervals) {
+      if (!start) continue;
+      const [h, m] = start.split(':').map(Number);
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() + offset);
+      startDate.setHours(h, m, 0, 0);
+      if (startDate > now) return startDate - now;
+    }
+  }
+  return null;
+}
+
+function schedulePolling() {
+  if (polling) {
+    clearInterval(polling);
+    polling = null;
+  }
+  clearTimeout(resumeTimeout);
+  clearInterval(countdownInterval);
+  if (withinSchedule()) {
+    polling = setInterval(checkStatus, 4000);
+    checkStatus();
+  } else {
+    const ms = msUntilNextInterval();
+    if (ms != null) {
+      const target = Date.now() + ms;
+      const update = () => {
+        const diff = target - Date.now();
+        if (diff <= 0) return;
+        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+        statusEl.textContent = `Fora do horário de atendimento. Retorna em ${h}:${m}:${s}`;
+      };
+      update();
+      countdownInterval = setInterval(update, 1000);
+      resumeTimeout = setTimeout(() => {
+        clearInterval(countdownInterval);
+        schedulePolling();
+      }, ms);
+    } else {
+      statusEl.textContent = "Fora do horário de atendimento.";
+    }
+  }
+}
 
 async function requestWakeLock() {
   if (!('wakeLock' in navigator) || wakeLock) return;
@@ -54,6 +162,8 @@ function releaseWakeLock() {
 function handleExit(msg) {
   clearInterval(polling);
   clearInterval(alertInterval);
+  clearTimeout(resumeTimeout);
+  clearInterval(countdownInterval);
   ticketNumber = null;
   callStartTs = 0;
   lastEventTs = 0;
@@ -83,7 +193,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && ticketNumber) requestWakeLock();
 });
 
-btnStart.addEventListener("click", () => {
+btnStart.addEventListener("click", async () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
@@ -92,12 +202,14 @@ btnStart.addEventListener("click", () => {
   btnJoin.hidden = true;
   btnCancel.hidden = false;
   btnCancel.disabled = false;
-  getTicket();
-  polling = setInterval(checkStatus, 4000);
+  await getTicket();
+  await fetchSchedule();
+  schedulePolling();
 });
 
 async function getTicket() {
-  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  if (!res) return;
   const data = await res.json();
   clientId     = data.clientId;
   ticketNumber = data.ticketNumber;
@@ -114,7 +226,14 @@ async function getTicket() {
 
 async function checkStatus() {
   if (!ticketNumber) return;
-  const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
+  if (!withinSchedule()) {
+    statusEl.textContent = "Fora do horário de atendimento.";
+    clearInterval(polling);
+    schedulePolling();
+    return;
+  }
+  const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
+  if (!res) return;
   const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
   const myName = names[ticketNumber];
 
@@ -135,11 +254,12 @@ async function checkStatus() {
 
   if (currentCall > ticketNumber) {
     const duration = callStartTs ? Date.now() - callStartTs : 0;
-    const res = await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+    const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId, reason: "missed", duration })
     });
+    if (!res) return;
     let msg = "Você perdeu a vez.";
     try {
       const data = await res.json();
@@ -250,18 +370,20 @@ btnCancel.addEventListener("click", async () => {
   statusEl.textContent = "Cancelando...";
   clearInterval(alertInterval);
 
-  await fetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
+  const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, reason: "client" })
   });
+  if (!res) return;
 
   releaseWakeLock();
   handleExit("Você saiu da fila.");
 });
 
-btnJoin.addEventListener("click", () => {
+btnJoin.addEventListener("click", async () => {
   btnJoin.disabled = true;
-  getTicket();
-  polling = setInterval(checkStatus, 4000);
+  await getTicket();
+  await fetchSchedule();
+  schedulePolling();
 });

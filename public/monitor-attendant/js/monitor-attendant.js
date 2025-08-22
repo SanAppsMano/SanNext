@@ -35,6 +35,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardPassword = document.getElementById('onboard-password');
   const onboardSubmit   = document.getElementById('onboard-submit');
   const onboardError    = document.getElementById('onboard-error');
+  const scheduleDays    = document.querySelectorAll('input[name="work-day"]');
+  const use1Checkbox    = document.getElementById('use1');
+  const start1Input     = document.getElementById('start1');
+  const end1Input       = document.getElementById('end1');
+  const use2Checkbox    = document.getElementById('use2');
+  const start2Input     = document.getElementById('start2');
+  const end2Input       = document.getElementById('end2');
+
+  function toggleInterval(cb, start, end) {
+    const sync = () => {
+      const enabled = cb.checked;
+      start.disabled = end.disabled = !enabled;
+    };
+    cb.addEventListener('change', sync);
+    sync();
+  }
+
+  toggleInterval(use1Checkbox, start1Input, end1Input);
+  toggleInterval(use2Checkbox, start2Input, end2Input);
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
@@ -48,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Nenhum monitor ativo para resetar.');
       return;
     }
-    if (!confirm('Deseja realmente apagar empresa e senha do servidor?')) return;
+    if (!confirm('Deseja realmente apagar empresa e senha do servidor? Todos os links e dados da fila serão invalidados.')) return;
     try {
       const res = await fetch(`${location.origin}/.netlify/functions/deleteMonitorConfig`, {
         method: 'POST',
@@ -713,8 +732,8 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
         if (!res.ok) throw new Error();
-        const { empresa } = await res.json();
-        cfg = { token, empresa, senha: senhaPrompt };
+        const { empresa, schedule } = await res.json();
+        cfg = { token, empresa, senha: senhaPrompt, schedule };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
         showApp(empresa, token);
@@ -759,10 +778,16 @@ function startBouncingCompanyName(text) {
           throw new Error(msg);
         }
         token = data.token;
-        cfg = { token, empresa, senha: pw };
+        const cfgRes = await fetch('/.netlify/functions/getMonitorConfig', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, senha: pw })
+        });
+        const cfgData = await cfgRes.json();
+        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
-        history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresa)}`);
-        showApp(empresa, token);
+        history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
+        showApp(cfgData.empresa, token);
       } catch (e) {
         console.error(e);
         loginError.textContent = 'Empresa ou senha inválida.';
@@ -780,14 +805,19 @@ function startBouncingCompanyName(text) {
       try {
         token = crypto.randomUUID().split('-')[0];
         const trialDays = 7;
+        const days = Array.from(scheduleDays).filter(d => d.checked).map(d => Number(d.value));
+        const intervals = [];
+        if (use1Checkbox.checked) intervals.push({ start: start1Input.value, end: end1Input.value });
+        if (use2Checkbox.checked) intervals.push({ start: start2Input.value, end: end2Input.value });
+        const schedule = { days, intervals };
         const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ token, empresa: label, senha: pw, trialDays })
+          body: JSON.stringify({ token, empresa: label, senha: pw, trialDays, schedule })
         });
         const { ok } = await res.json();
         if (!ok) throw new Error();
-        cfg = { token, empresa: label, senha: pw };
+        cfg = { token, empresa: label, senha: pw, schedule };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
         showApp(label, token);

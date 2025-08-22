@@ -46,8 +46,20 @@ exports.handler = async (event) => {
     return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
   }
 
+  let schedule = stored.schedule;
+  if (!schedule) {
+    try {
+      const schedRaw = await redisClient.get(`tenant:${token}:schedule`);
+      if (schedRaw) {
+        schedule = typeof schedRaw === 'string' ? JSON.parse(schedRaw) : schedRaw;
+      }
+    } catch (err) {
+      console.error('schedule fetch error:', err);
+    }
+  }
+
   return {
     statusCode: 200,
-    body: JSON.stringify({ empresa: stored.empresa })
+    body: JSON.stringify({ empresa: stored.empresa, schedule })
   };
 };

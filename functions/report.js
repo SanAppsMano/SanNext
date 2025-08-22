@@ -8,13 +8,14 @@ export async function handler(event) {
   }
 
   const redis = Redis.fromEnv();
-  const prefix = `tenant:${tenantId}:`;
-
-  // Verifica se o token/tenant existe
-  const exists = await redis.exists(prefix + "ticketCounter");
-  if (!exists) {
-    return { statusCode: 404, body: "Invalid tenant" };
+  const [pwHash, monitor] = await redis.mget(
+    `tenant:${tenantId}:pwHash`,
+    `monitor:${tenantId}`
+  );
+  if (!pwHash && !monitor) {
+    return { statusCode: 404, body: "Invalid link" };
   }
+  const prefix = `tenant:${tenantId}:`;
 
   const data = await Promise.all([
     redis.lrange(prefix + "log:entered", 0, -1),
