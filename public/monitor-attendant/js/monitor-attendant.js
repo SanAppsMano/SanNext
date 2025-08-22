@@ -142,6 +142,25 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
+  const btnQrPdf      = document.getElementById('btn-qr-pdf');
+  let currentClientUrl = '';
+  let qrReady = false;
+
+  function updatePdfBtnVisibility() {
+    if (!qrReady) {
+      btnQrPdf.hidden = true;
+      return;
+    }
+    const rect = qrContainer.getBoundingClientRect();
+    const inView = rect.bottom > 0 && rect.top < window.innerHeight;
+    btnQrPdf.hidden = !inView;
+  }
+
+  window.addEventListener('scroll', updatePdfBtnVisibility);
+  window.addEventListener('resize', updatePdfBtnVisibility);
+  btnQrPdf.addEventListener('click', generateQrPdf);
+  updatePdfBtnVisibility();
+
   let currentCallNum = 0; // último número chamado exibido
   let ticketNames    = {};
   let ticketCounter  = 0;
@@ -172,6 +191,10 @@ function renderQRCode(tId) {
   new QRCode(qrContainer,     { text: urlCliente, width: 128, height: 128 });
   new QRCode(qrOverlayContent, { text: urlCliente, width: 256, height: 256 });
 
+  currentClientUrl = urlCliente;
+  qrReady = true;
+  updatePdfBtnVisibility();
+
   qrContainer.style.cursor = 'pointer';
   qrContainer.onclick = () =>
     navigator.clipboard.writeText(urlCliente).then(() => {
@@ -191,7 +214,35 @@ function renderQRCode(tId) {
   };
 }
 
-  
+function generateQrPdf() {
+  const qrImg = qrContainer.querySelector('img');
+  if (!qrImg) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  doc.setFontSize(18);
+  doc.text(cfg.empresa || '', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+  doc.setFontSize(14);
+  doc.text('Entre na fila', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+  doc.addImage(qrImg.src, 'PNG', pageWidth / 2 - 35, y, 70, 70);
+  y += 80;
+  doc.setFontSize(12);
+  doc.text('1. Abra a câmera do seu celular.', pageWidth / 2, y, { align: 'center' });
+  y += 6;
+  doc.text('2. Aponte para o QR code.', pageWidth / 2, y, { align: 'center' });
+  y += 6;
+  doc.text('3. Siga o link para pegar sua senha.', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+  doc.setFontSize(10);
+  doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
+  doc.save('instrucoes-fila.pdf');
+}
+
+
   /**
  * Inicia o texto quicando com o nome da empresa
  */
