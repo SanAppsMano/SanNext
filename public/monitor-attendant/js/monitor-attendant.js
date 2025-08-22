@@ -228,9 +228,16 @@ function isMobile() {
   return /Mobi|Android|iP(ad|hone|od)/i.test(navigator.userAgent) || window.innerWidth <= 768;
 }
 
+function getQrCodeDataUrl() {
+  const img = qrContainer.querySelector('img');
+  if (img && img.src) return img.src;
+  const canvas = qrContainer.querySelector('canvas');
+  return canvas ? canvas.toDataURL('image/png') : null;
+}
+
 function generateQrPdf() {
-  const qrImg = qrContainer.querySelector('img');
-  if (!qrImg) return;
+  const qrDataUrl = getQrCodeDataUrl();
+  if (!qrDataUrl) return;
   if (isMobile()) {
     if (!confirm('Deseja abrir o PDF?')) return;
     const html = `\
@@ -247,7 +254,7 @@ function generateQrPdf() {
         <img src="/img/icon-sannext.png" alt="Logo" style="width:80px;margin-bottom:10px;" />
         <h1>${cfg.empresa || ''}</h1>
         <h2>Entre na fila</h2>
-        <img src="${qrImg.src}" alt="QR Code" style="width:200px;height:200px;" />
+        <img src="${qrDataUrl}" alt="QR Code" style="width:200px;height:200px;" />
         <p>1. Abra a câmera do seu celular.<br>2. Aponte para o QR code.<br>3. Siga o link para pegar sua senha.</p>
         <p>${currentClientUrl}</p>
       </body>
@@ -273,7 +280,7 @@ function generateQrPdf() {
   doc.setFontSize(14);
   doc.text('Entre na fila', pageWidth / 2, y, { align: 'center' });
   y += 10;
-  doc.addImage(qrImg.src, 'PNG', pageWidth / 2 - 35, y, 70, 70);
+  doc.addImage(qrDataUrl, 'PNG', pageWidth / 2 - 35, y, 70, 70);
   y += 80;
   doc.setFontSize(12);
   doc.text('1. Abra a câmera do seu celular.', pageWidth / 2, y, { align: 'center' });
