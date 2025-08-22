@@ -593,14 +593,7 @@ body {
 #schedule-modal[hidden] {
   display: none !important;
 }
-#schedule-modal .modal-content {
-  background: #fff;
-  padding: 2rem;
-  border-radius: var(--radius);
-  width: 90%;
-  max-width: 360px;
-  text-align: left;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+#schedule-modal .onboard-box {
   max-height: 90vh;
   overflow-y: auto;
 }
