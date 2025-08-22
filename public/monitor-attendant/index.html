@@ -82,6 +82,7 @@
     <div class="logo-texts">
       <span class="logo-text">SanNext</span>
       <span id="header-label" class="company-text"></span>
+      <span id="header-schedule" class="header-schedule"></span>
     </div>
   </div>
   <button id="btn-delete-config" class="btn btn-secondary">
@@ -89,6 +90,9 @@
   </button>
   <button id="btn-view-monitor" class="btn btn-secondary">
     Espelhar Monitor
+  </button>
+  <button id="btn-edit-schedule" class="btn btn-secondary">
+    Editar Horário
   </button>
 </header>
 
@@ -159,6 +163,39 @@
   </main>
 
   <script src="js/monitor-attendant.js"></script>
+
+  <!-- Modal de Horário -->
+  <div id="schedule-modal" hidden>
+    <div class="modal-content">
+      <span id="schedule-close" class="close">&times;</span>
+      <h2>Editar Horário</h2>
+      <fieldset class="schedule">
+        <legend>Horário de Atendimento</legend>
+        <div class="days-grid">
+          <label><input type="checkbox" name="work-day" value="1"><span>Seg</span></label>
+          <label><input type="checkbox" name="work-day" value="2"><span>Ter</span></label>
+          <label><input type="checkbox" name="work-day" value="3"><span>Qua</span></label>
+          <label><input type="checkbox" name="work-day" value="4"><span>Qui</span></label>
+          <label><input type="checkbox" name="work-day" value="5"><span>Sex</span></label>
+          <label><input type="checkbox" name="work-day" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" name="work-day" value="0"><span>Dom</span></label>
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="edit-use1"><span>Manhã</span></label>
+          <input id="edit-start1" type="time" value="08:00" />
+          <span class="dash">às</span>
+          <input id="edit-end1" type="time" value="12:00" />
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="edit-use2"><span>Tarde</span></label>
+          <input id="edit-start2" type="time" value="14:00" />
+          <span class="dash">às</span>
+          <input id="edit-end2" type="time" value="18:00" />
+        </div>
+      </fieldset>
+      <button id="schedule-save" class="btn btn-primary">Salvar</button>
+    </div>
+  </div>
 
   <!-- Modal de Relatório -->
   <div id="report-modal" hidden>

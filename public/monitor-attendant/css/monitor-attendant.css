@@ -197,6 +197,12 @@ body {
   font-size: 1rem;
 }
 
+.header-schedule {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .main {
   flex: 1;
   padding: 1rem;
@@ -572,6 +578,33 @@ body {
 }
 #view-qrcode {
   margin: 1rem auto;
+}
+
+/* Modal de edição de horário */
+#schedule-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#schedule-modal[hidden] {
+  display: none !important;
+}
+#schedule-modal .modal-content {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+#schedule-modal .close {
+  float: right;
+  font-size: 1.25rem;
+  cursor: pointer;
 }
 
 .copy-info {
