@@ -243,8 +243,20 @@ function generateQrPdf() {
   doc.setFontSize(10);
   doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
 
-  const blobUrl = doc.output('bloburl');
-  window.open(blobUrl, '_blank');
+  const dataUri = doc.output('datauristring');
+  const pdfWindow = window.open('', '_blank');
+  if (pdfWindow) {
+    pdfWindow.document.title = cfg.empresa || 'PDF';
+    const iframe = pdfWindow.document.createElement('iframe');
+    iframe.style.border = 'none';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.src = dataUri;
+    pdfWindow.document.body.appendChild(iframe);
+  } else {
+    // fallback caso não seja possível abrir nova janela
+    doc.save(`${(cfg.empresa || 'qr').replace(/\s+/g, '_')}.pdf`);
+  }
 }
 
 
