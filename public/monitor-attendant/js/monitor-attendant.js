@@ -151,12 +151,44 @@ document.addEventListener('DOMContentLoaded', () => {
     alignItems: 'center', justifyContent: 'center', zIndex: 1000,
     padding: '1rem'
   });
+
+  const pdfContent = document.createElement('div');
+  Object.assign(pdfContent.style, {
+    position: 'relative', background: '#fff', borderRadius: '8px',
+    padding: '1rem', maxWidth: '90%', maxHeight: '90%',
+    display: 'flex', flexDirection: 'column', alignItems: 'center'
+  });
+  pdfOverlay.appendChild(pdfContent);
+
   const pdfIframe = document.createElement('iframe');
   Object.assign(pdfIframe.style, {
-    border: 'none', width: '90%', height: '90%', borderRadius: '8px',
+    border: 'none', width: '100%', height: '100%', borderRadius: '8px',
     background: '#fff'
   });
-  pdfOverlay.appendChild(pdfIframe);
+  pdfContent.appendChild(pdfIframe);
+
+  const pdfImg = document.createElement('img');
+  Object.assign(pdfImg.style, {
+    display: 'none', maxWidth: '100%', maxHeight: '80%'
+  });
+  pdfContent.appendChild(pdfImg);
+
+  const pdfActions = document.createElement('div');
+  Object.assign(pdfActions.style, {
+    display: 'none', marginTop: '0.5rem', gap: '0.5rem'
+  });
+  pdfContent.appendChild(pdfActions);
+
+  const shareBtn = document.createElement('button');
+  shareBtn.textContent = 'Compartilhar';
+  shareBtn.className = 'btn btn-primary';
+  pdfActions.appendChild(shareBtn);
+
+  const printBtn = document.createElement('button');
+  printBtn.textContent = 'Imprimir';
+  printBtn.className = 'btn btn-secondary';
+  pdfActions.appendChild(printBtn);
+
   const pdfClose = document.createElement('button');
   pdfClose.textContent = '×';
   Object.assign(pdfClose.style, {
@@ -249,31 +281,90 @@ function generateQrPdf() {
   const qrImg = qrContainer.querySelector('img');
   if (!qrImg) return;
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 20;
+  const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 
-  doc.setFontSize(18);
-  doc.text(cfg.empresa || '', pageWidth / 2, y, { align: 'center' });
-  y += 10;
-  doc.setFontSize(14);
-  doc.text('Entre na fila', pageWidth / 2, y, { align: 'center' });
-  y += 10;
-  doc.addImage(qrImg.src, 'PNG', pageWidth / 2 - 35, y, 70, 70);
-  y += 80;
-  doc.setFontSize(12);
-  doc.text('1. Abra a câmera do seu celular.', pageWidth / 2, y, { align: 'center' });
-  y += 6;
-  doc.text('2. Aponte para o QR code.', pageWidth / 2, y, { align: 'center' });
-  y += 6;
-  doc.text('3. Siga o link para pegar sua senha.', pageWidth / 2, y, { align: 'center' });
-  y += 10;
-  doc.setFontSize(10);
-  doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
-  const dataUri = doc.output('datauristring');
-  pdfIframe.src = dataUri;
-  pdfOverlay.style.display = 'flex';
+  if (isMobile) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 500; canvas.height = 700;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(cfg.empresa || '', canvas.width / 2, 40);
+    ctx.font = '18px sans-serif';
+    ctx.fillText('Entre na fila', canvas.width / 2, 80);
+    const qrSize = 280;
+    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 100, qrSize, qrSize);
+    ctx.font = '16px sans-serif';
+    ctx.fillText('1. Abra a câmera do seu celular.', canvas.width / 2, 420);
+    ctx.fillText('2. Aponte para o QR code.', canvas.width / 2, 450);
+    ctx.fillText('3. Siga o link para pegar sua senha.', canvas.width / 2, 480);
+    ctx.font = '12px sans-serif';
+    ctx.fillText(currentClientUrl, canvas.width / 2, 520);
+
+    const dataUrl = canvas.toDataURL('image/png');
+    pdfIframe.style.display = 'none';
+    pdfImg.src = dataUrl;
+    pdfImg.style.display = 'block';
+    pdfActions.style.display = 'flex';
+
+    shareBtn.onclick = async () => {
+      try {
+        const resp = await fetch(dataUrl);
+        const blob = await resp.blob();
+        const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: cfg.empresa });
+        } else {
+          alert('Compartilhamento não suportado neste dispositivo.');
+        }
+      } catch (err) {
+        console.error('Share failed', err);
+      }
+    };
+
+    printBtn.onclick = () => {
+      const w = window.open('');
+      w.document.write(`<img src="${dataUrl}" style="width:100%">`);
+      w.document.close();
+      w.focus();
+      w.print();
+      w.close();
+    };
+
+    pdfOverlay.style.display = 'flex';
+  } else {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text(cfg.empresa || '', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.setFontSize(14);
+    doc.text('Entre na fila', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.addImage(qrImg.src, 'PNG', pageWidth / 2 - 35, y, 70, 70);
+    y += 80;
+    doc.setFontSize(12);
+    doc.text('1. Abra a câmera do seu celular.', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.text('2. Aponte para o QR code.', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.text('3. Siga o link para pegar sua senha.', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
+    const dataUri = doc.output('datauristring');
+    pdfImg.style.display = 'none';
+    pdfActions.style.display = 'none';
+    pdfIframe.src = dataUri;
+    pdfIframe.style.display = 'block';
+    pdfOverlay.style.display = 'flex';
+  }
 }
 
 
