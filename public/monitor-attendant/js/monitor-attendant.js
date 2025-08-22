@@ -214,19 +214,12 @@ function renderQRCode(tId) {
   };
 }
 
-function sanitizeFileName(name) {
-  return (name || 'empresa')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // remove acentos
-    .replace(/[^a-zA-Z0-9 ]+/g, '') // remove caracteres inválidos
-    .trim()
-    .replace(/\s+/g, '-')
-    .toLowerCase();
-}
-
 function generateQrPdf() {
+  if (!window.confirm('Deseja visualizar o PDF agora?')) return;
+
   const qrImg = qrContainer.querySelector('img');
   if (!qrImg) return;
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -249,12 +242,9 @@ function generateQrPdf() {
   y += 10;
   doc.setFontSize(10);
   doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
-  const empresaSlug = sanitizeFileName(cfg.empresa);
+
   const blobUrl = doc.output('bloburl');
-  doc.save(`${empresaSlug}-instrucoes-fila.pdf`);
-  if (window.confirm('Deseja visualizar o PDF agora?')) {
-    window.open(blobUrl, '_blank');
-  }
+  window.open(blobUrl, '_blank');
 }
 
 
