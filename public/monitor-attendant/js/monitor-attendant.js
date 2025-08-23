@@ -18,11 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
 
-  // Se token não veio na URL mas existe em localStorage, usar
-  if (!token && cfg && cfg.token) {
-    token = cfg.token;
-  }
-
   // Overlays e seções
   const onboardOverlay = document.getElementById('onboard-overlay');
   const loginOverlay   = document.getElementById('login-overlay');
