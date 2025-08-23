@@ -22,6 +22,7 @@ const ticketEl   = document.getElementById("ticket");
 const statusEl   = document.getElementById("status");
 const btnCancel  = document.getElementById("btn-cancel");
 const btnJoin    = document.getElementById("btn-join");
+const btnCheck   = document.getElementById("btn-check");
 const btnSilence = document.getElementById("btn-silence");
 const btnStart   = document.getElementById("btn-start");
 const overlay    = document.getElementById("overlay");
@@ -118,6 +119,7 @@ function schedulePolling() {
   if (withinSchedule()) {
     polling = setInterval(checkStatus, 4000);
     checkStatus();
+    btnCheck.hidden = true;
   } else {
     const ms = msUntilNextInterval();
     if (ms != null) {
@@ -139,6 +141,7 @@ function schedulePolling() {
     } else {
       statusEl.textContent = "Fora do horário de atendimento.";
     }
+    btnCheck.hidden = !ticketNumber;
   }
 }
 
@@ -175,6 +178,7 @@ function handleExit(msg) {
   btnCancel.hidden = true;
   btnJoin.hidden = false;
   btnJoin.disabled = false;
+  btnCheck.hidden = true;
 }
 
 // AVISO AO RECARREGAR/FECHAR A PÁGINA
@@ -289,6 +293,26 @@ async function checkStatus() {
   }
 }
 
+async function verifyTicket() {
+  if (!ticketNumber) return;
+  const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
+  if (!res) return;
+  const { ticketCounter, missedNumbers = [], attendedNumbers = [] } = await res.json();
+  if (ticketCounter < ticketNumber) {
+    handleExit("Fila reiniciada. Entre novamente.");
+    return;
+  }
+  if (missedNumbers.includes(ticketNumber)) {
+    handleExit("Você perdeu a vez.");
+    return;
+  }
+  if (attendedNumbers.includes(ticketNumber)) {
+    handleExit("Atendimento concluído.");
+    return;
+  }
+  statusEl.textContent = "Sua senha permanece válida.";
+}
+
 function alertUser(name) {
   btnSilence.hidden = false;
   requestWakeLock();
@@ -387,3 +411,5 @@ btnJoin.addEventListener("click", async () => {
   await fetchSchedule();
   schedulePolling();
 });
+
+btnCheck.addEventListener("click", verifyTicket);
