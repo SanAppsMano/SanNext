@@ -934,30 +934,37 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // Se houver token e empresa (URL ou cache), solicita senha (ou usa ?senha)
+    // Se houver token e empresa na URL, valida primeiro no servidor
     if (token && empresaParam) {
-      loginOverlay.hidden   = true;
-      onboardOverlay.hidden = true;
-      const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
-      if (senhaPrompt) {
-        try {
-          const res = await fetch('/.netlify/functions/getMonitorConfig', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, senha: senhaPrompt.trim() })
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || 'Token ou senha inválidos.');
-          const { empresa, schedule } = data;
-          cfg = { token, empresa, senha: senhaPrompt.trim(), schedule };
-          history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(empresa)}`);
-          showApp(empresa, token);
-          return;
-        } catch (err) {
-          alert(err.message || 'Token ou senha inválidos.');
+      try {
+        const verify = await fetch(`/.netlify/functions/verifyMonitor?t=${token}&empresa=${encodeURIComponent(empresaParam)}`);
+        if (!verify.ok) throw new Error('Link inválido');
+        loginOverlay.hidden   = true;
+        onboardOverlay.hidden = true;
+        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+        if (senhaPrompt) {
+          try {
+            const res = await fetch('/.netlify/functions/getMonitorConfig', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token, senha: senhaPrompt.trim() })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Token ou senha inválidos.');
+            const { empresa, schedule } = data;
+            cfg = { token, empresa, senha: senhaPrompt.trim(), schedule };
+            history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(empresa)}`);
+            showApp(empresa, token);
+            return;
+          } catch (err) {
+            alert(err.message || 'Token ou senha inválidos.');
+            history.replaceState(null, '', '/monitor-attendant/');
+          }
+        } else {
           history.replaceState(null, '', '/monitor-attendant/');
         }
-      } else {
+      } catch (err) {
+        alert(err.message || 'Token ou empresa inválidos.');
         history.replaceState(null, '', '/monitor-attendant/');
       }
     }
