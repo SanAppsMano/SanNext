@@ -6,6 +6,15 @@ const redisExt = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN
 });
 
+function sanitizeEmpresa(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
@@ -44,7 +53,10 @@ exports.handler = async (event) => {
     }
     await redisExt.expire(`monitor:${token}`, novoTTL);
     if (empresa) {
-      await redisExt.expire(`monitorByEmpresa:${empresa.toLowerCase()}`, novoTTL);
+      const empresaKey = sanitizeEmpresa(empresa);
+      if (empresaKey) {
+        await redisExt.expire(`monitorByEmpresa:${empresaKey}`, novoTTL);
+      }
     }
     return {
       statusCode: 200,
