@@ -295,22 +295,30 @@ async function checkStatus() {
 
 async function verifyTicket() {
   if (!ticketNumber) return;
+  await fetchSchedule();
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
-  if (!res) return;
+  if (!res) {
+    schedulePolling();
+    return;
+  }
   const { ticketCounter, missedNumbers = [], attendedNumbers = [] } = await res.json();
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
+    schedulePolling();
     return;
   }
   if (missedNumbers.includes(ticketNumber)) {
     handleExit("Você perdeu a vez.");
+    schedulePolling();
     return;
   }
   if (attendedNumbers.includes(ticketNumber)) {
     handleExit("Atendimento concluído.");
+    schedulePolling();
     return;
   }
   statusEl.textContent = "Sua senha permanece válida.";
+  schedulePolling();
 }
 
 function alertUser(name) {
