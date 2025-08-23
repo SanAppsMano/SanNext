@@ -46,7 +46,7 @@ exports.handler = async (event) => {
     }
     await redis.del(...keys);
 
-    // Apaga todas as chaves do tenant (contadores, senha, label, tickets, logs...)
+    // Apaga todas as chaves do tenant (contadores, pwHash, label, tickets, logs...)
     // usando SCAN/DEL para remover conjuntos e hashes da fila
     const prefix = `tenant:${token}:`;
     let cursor = 0;

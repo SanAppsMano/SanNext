@@ -1,5 +1,6 @@
 // functions/getMonitorConfig.js
 const { Redis } = require('@upstash/redis');
+const bcrypt = require('bcryptjs');
 
 const redisClient = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -23,9 +24,12 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Token ou senha ausente' }) };
   }
 
-  let data;
+  let data, hash;
   try {
-    data = await redisClient.get(`monitor:${token}`);
+    [data, hash] = await redisClient.mget(
+      `monitor:${token}`,
+      `tenant:${token}:pwHash`
+    );
   } catch (err) {
     console.error('Redis fetch error:', err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
@@ -33,6 +37,9 @@ exports.handler = async (event) => {
 
   if (!data) {
     return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
+  }
+  if (!hash) {
+    return { statusCode: 404, body: JSON.stringify({ error: 'Senha não configurada' }) };
   }
 
   let stored;
@@ -42,7 +49,8 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos no Redis' }) };
   }
 
-  if (stored.senha !== senha) {
+  const valid = await bcrypt.compare(senha, hash);
+  if (!valid) {
     return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
   }
 
