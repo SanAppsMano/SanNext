@@ -420,4 +420,15 @@ btnJoin.addEventListener("click", async () => {
   schedulePolling();
 });
 
-btnCheck.addEventListener("click", verifyTicket);
+btnCheck.addEventListener("click", async () => {
+  const originalText = btnCheck.textContent;
+  btnCheck.disabled = true;
+  btnCheck.classList.add("loading");
+  btnCheck.textContent = "";
+  await verifyTicket();
+  setTimeout(() => {
+    btnCheck.textContent = originalText;
+    btnCheck.classList.remove("loading");
+    btnCheck.disabled = false;
+  }, 2000);
+});
