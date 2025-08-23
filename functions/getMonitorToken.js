@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import bcrypt from 'bcryptjs';
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -43,13 +44,19 @@ export async function handler(event) {
       return { statusCode: 404, body: JSON.stringify({ error: 'Empresa não encontrada' }) };
     }
 
-    const data = await redis.get(`monitor:${token}`);
-    if (!data) {
+    const [config, hash] = await redis.mget(
+      `monitor:${token}`,
+      `tenant:${token}:pwHash`
+    );
+    if (!config) {
       return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
     }
+    if (!hash) {
+      return { statusCode: 404, body: JSON.stringify({ error: 'Senha não configurada' }) };
+    }
 
-    const stored = JSON.parse(data);
-    if (stored.senha !== senha) {
+    const valid = await bcrypt.compare(senha, hash);
+    if (!valid) {
       return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
     }
 

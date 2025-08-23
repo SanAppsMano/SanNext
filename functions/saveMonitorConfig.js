@@ -1,5 +1,6 @@
 // functions/saveMonitorConfig.js
 const { Redis } = require('@upstash/redis');
+const bcrypt = require('bcryptjs');
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -26,14 +27,20 @@ exports.handler = async (event) => {
   const ttl = (trialDays ?? 7) * 24 * 60 * 60;
 
   try {
+    const pwHash = await bcrypt.hash(senha, 10);
     await redis.set(
       `monitor:${token}`,
-      JSON.stringify({ empresa, senha, schedule }),
+      JSON.stringify({ empresa, schedule }),
       { ex: ttl }
     );
     await redis.set(
       `monitorByEmpresa:${empresa.toLowerCase()}`,
       token,
+      { ex: ttl }
+    );
+    await redis.set(
+      `tenant:${token}:pwHash`,
+      pwHash,
       { ex: ttl }
     );
     if (schedule) {
