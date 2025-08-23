@@ -15,12 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let token           = urlParams.get('t');
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
-  const storedConfig  = localStorage.getItem('monitorConfig');
-  let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
-
-  // Usa token e empresa salvos se não estiverem na URL
-  if (!token && cfg && cfg.token) token = cfg.token;
-  if (!empresaParam && cfg && cfg.empresa) empresaParam = cfg.empresa;
+  let cfg             = null;
 
   // Overlays e seções
   const onboardOverlay = document.getElementById('onboard-overlay');
@@ -87,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (res.ok && data.ok) {
-        localStorage.removeItem('monitorConfig');
         history.replaceState(null, '', '/monitor-attendant/');
         location.reload();
       } else {
@@ -191,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error();
       cfg.schedule = schedule;
-      localStorage.setItem('monitorConfig', JSON.stringify(cfg));
       scheduleModal.hidden = true;
     } catch (e) {
       alert('Erro ao salvar horário.');
@@ -957,8 +950,7 @@ function startBouncingCompanyName(text) {
           if (!res.ok) throw new Error(data.error || 'Token ou senha inválidos.');
           const { empresa, schedule } = data;
           cfg = { token, empresa, senha: senhaPrompt.trim(), schedule };
-          localStorage.setItem('monitorConfig', JSON.stringify(cfg));
-          history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresa)}`);
+          history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(empresa)}`);
           showApp(empresa, token);
           return;
         } catch (err) {
@@ -1010,8 +1002,7 @@ function startBouncingCompanyName(text) {
         });
         const cfgData = await cfgRes.json();
         cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule };
-        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
-        history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
+        history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
       } catch (e) {
         console.error(e);
@@ -1043,7 +1034,6 @@ function startBouncingCompanyName(text) {
         const { ok } = await res.json();
         if (!ok) throw new Error();
         cfg = { token, empresa: label, senha: pw, schedule };
-        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
         showApp(label, token);
       } catch (e) {
