@@ -946,22 +946,27 @@ function startBouncingCompanyName(text) {
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
-      try {
-        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
-        const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ token, senha: senhaPrompt })
-        });
-        if (!res.ok) throw new Error();
-        const { empresa, schedule } = await res.json();
-        cfg = { token, empresa, senha: senhaPrompt, schedule };
-        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
-        history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
-        showApp(empresa, token);
-        return;
-      } catch {
-        alert('Token ou senha inválidos.');
+      const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+      if (senhaPrompt) {
+        try {
+          const res = await fetch('/.netlify/functions/getMonitorConfig', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, senha: senhaPrompt.trim() })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Token ou senha inválidos.');
+          const { empresa, schedule } = data;
+          cfg = { token, empresa, senha: senhaPrompt.trim(), schedule };
+          localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+          history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresa)}`);
+          showApp(empresa, token);
+          return;
+        } catch (err) {
+          alert(err.message || 'Token ou senha inválidos.');
+          history.replaceState(null, '', '/monitor-attendant/');
+        }
+      } else {
         history.replaceState(null, '', '/monitor-attendant/');
       }
     }
