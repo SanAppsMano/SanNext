@@ -1,12 +1,10 @@
 // functions/getMonitorConfig.js
-const { Redis } = require('@upstash/redis');
+import { Redis } from '@upstash/redis';
+import bcrypt from 'bcryptjs';
 
-const redisClient = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN
-});
+const redis = Redis.fromEnv();
 
-exports.handler = async (event) => {
+export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
   }
@@ -25,7 +23,7 @@ exports.handler = async (event) => {
 
   let data;
   try {
-    data = await redisClient.get(`monitor:${token}`);
+    data = await redis.get(`monitor:${token}`);
   } catch (err) {
     console.error('Redis fetch error:', err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
@@ -42,14 +40,31 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos no Redis' }) };
   }
 
-  if (stored.senha !== senha) {
+  let valid = false;
+  if (stored.pwHash) {
+    valid = await bcrypt.compare(senha, stored.pwHash);
+  } else if (stored.senha) {
+    if (stored.senha === senha) {
+      valid = true;
+      try {
+        const pwHash = await bcrypt.hash(senha, 10);
+        stored.pwHash = pwHash;
+        delete stored.senha;
+        await redis.set(`monitor:${token}`, JSON.stringify(stored));
+      } catch (err) {
+        console.error('password migration error:', err);
+      }
+    }
+  }
+
+  if (!valid) {
     return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
   }
 
   let schedule = stored.schedule;
   if (!schedule) {
     try {
-      const schedRaw = await redisClient.get(`tenant:${token}:schedule`);
+      const schedRaw = await redis.get(`tenant:${token}:schedule`);
       if (schedRaw) {
         schedule = typeof schedRaw === 'string' ? JSON.parse(schedRaw) : schedRaw;
       }
@@ -62,4 +77,4 @@ exports.handler = async (event) => {
     statusCode: 200,
     body: JSON.stringify({ empresa: stored.empresa, schedule })
   };
-};
+}

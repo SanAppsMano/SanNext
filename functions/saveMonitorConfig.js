@@ -1,12 +1,10 @@
 // functions/saveMonitorConfig.js
-const { Redis } = require('@upstash/redis');
+import { Redis } from '@upstash/redis';
+import bcrypt from 'bcryptjs';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN
-});
+const redis = Redis.fromEnv();
 
-exports.handler = async (event) => {
+export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
   }
@@ -26,9 +24,10 @@ exports.handler = async (event) => {
   const ttl = (trialDays ?? 7) * 24 * 60 * 60;
 
   try {
+    const pwHash = await bcrypt.hash(senha, 10);
     await redis.set(
       `monitor:${token}`,
-      JSON.stringify({ empresa, senha, schedule }),
+      JSON.stringify({ empresa, pwHash, schedule }),
       { ex: ttl }
     );
     await redis.set(
@@ -54,4 +53,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: err.message })
     };
   }
-};
+}
