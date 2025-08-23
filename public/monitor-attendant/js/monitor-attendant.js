@@ -102,6 +102,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Elementos de UI principal
   const headerLabel    = document.getElementById('header-label');
+
+  // Pré-preenche campos de empresa e cabeçalho quando "empresa" vier na URL
+  if (empresaParam) {
+    loginCompany.value   = empresaParam;
+    onboardLabel.value   = empresaParam;
+    headerLabel.textContent = empresaParam;
+  }
+
   const attendantInput = document.getElementById('attendant-id');
   const currentCallEl  = document.getElementById('current-call');
   const currentIdEl    = document.getElementById('current-id');
@@ -944,8 +952,15 @@ function startBouncingCompanyName(text) {
   (async () => {
     // 1) Se já temos cfg em localStorage, pular direto
     if (cfg && cfg.empresa && cfg.senha && token) {
-      showApp(cfg.empresa, token);
-      return;
+      if (empresaParam && cfg.empresa !== empresaParam) {
+        // Nome de empresa na URL difere do salvo, descartar configuração
+        localStorage.removeItem('monitorConfig');
+        cfg = null;
+        token = urlParams.get('t');
+      } else {
+        showApp(cfg.empresa, token);
+        return;
+      }
     }
 
     // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
