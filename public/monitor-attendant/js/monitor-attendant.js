@@ -944,8 +944,32 @@ function startBouncingCompanyName(text) {
   (async () => {
     // 1) Se já temos cfg em localStorage, pular direto
     if (cfg && cfg.empresa && cfg.senha && token) {
-      showApp(cfg.empresa, token);
-      return;
+      if (empresaParam && empresaParam !== cfg.empresa) {
+        loginOverlay.hidden   = true;
+        onboardOverlay.hidden = true;
+        try {
+          const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+          const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ token, senha: senhaPrompt })
+          });
+          if (!res.ok) throw new Error();
+          const { empresa, schedule } = await res.json();
+          cfg = { token, empresa, senha: senhaPrompt, schedule };
+          localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+          history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
+          showApp(empresa, token);
+          return;
+        } catch {
+          alert('Token ou senha inválidos.');
+          history.replaceState(null, '', '/monitor-attendant/');
+        }
+      } else {
+        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        showApp(cfg.empresa, token);
+        return;
+      }
     }
 
     // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
