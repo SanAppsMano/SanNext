@@ -1,5 +1,6 @@
 // functions/getMonitorConfig.js
 const { Redis } = require('@upstash/redis');
+const bcrypt = require('bcryptjs');
 
 const redisClient = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -42,7 +43,24 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos no Redis' }) };
   }
 
-  if (stored.senha !== senha) {
+  let valid = false;
+  if (stored.pwHash) {
+    valid = await bcrypt.compare(senha, stored.pwHash);
+  } else if (stored.senha) {
+    if (stored.senha === senha) {
+      valid = true;
+      try {
+        const pwHash = await bcrypt.hash(senha, 10);
+        stored.pwHash = pwHash;
+        delete stored.senha;
+        await redisClient.set(`monitor:${token}`, JSON.stringify(stored));
+      } catch (err) {
+        console.error('password migration error:', err);
+      }
+    }
+  }
+
+  if (!valid) {
     return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
   }
 
