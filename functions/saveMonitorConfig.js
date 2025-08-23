@@ -7,6 +7,15 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN
 });
 
+function sanitizeEmpresa(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
@@ -24,6 +33,11 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados incompletos' }) };
   }
 
+  const empresaKey = sanitizeEmpresa(empresa);
+  if (!empresaKey) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Nome de empresa inválido' }) };
+  }
+
   const ttl = (trialDays ?? 7) * 24 * 60 * 60;
 
   try {
@@ -34,7 +48,7 @@ exports.handler = async (event) => {
       { ex: ttl }
     );
     await redis.set(
-      `monitorByEmpresa:${empresa.toLowerCase()}`,
+      `monitorByEmpresa:${empresaKey}`,
       token,
       { ex: ttl }
     );

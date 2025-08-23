@@ -7,6 +7,15 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN
 });
 
+function sanitizeEmpresa(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return {
@@ -42,7 +51,10 @@ exports.handler = async (event) => {
     // Remove também índice possivelmente cadastrado (tenantByEmail), se existir
     const keys = [`monitor:${token}`, `tenantByEmail:${token}`];
     if (empresa) {
-      keys.push(`monitorByEmpresa:${empresa.toLowerCase()}`);
+      const empresaKey = sanitizeEmpresa(empresa);
+      if (empresaKey) {
+        keys.push(`monitorByEmpresa:${empresaKey}`);
+      }
     }
     await redis.del(...keys);
 

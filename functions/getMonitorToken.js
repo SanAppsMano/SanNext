@@ -1,6 +1,15 @@
 import { Redis } from '@upstash/redis';
 import bcrypt from 'bcryptjs';
 
+function sanitizeEmpresa(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return {
@@ -25,7 +34,12 @@ export async function handler(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados incompletos' }) };
   }
 
-  const key = `monitorByEmpresa:${empresa.toLowerCase()}`;
+  const empresaKey = sanitizeEmpresa(empresa);
+  if (!empresaKey) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Nome de empresa inválido' }) };
+  }
+
+  const key = `monitorByEmpresa:${empresaKey}`;
 
   let redis;
   try {
