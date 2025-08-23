@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
 
+  // Usa token e empresa salvos se não estiverem na URL
+  if (!token && cfg && cfg.token) token = cfg.token;
+  if (!empresaParam && cfg && cfg.empresa) empresaParam = cfg.empresa;
+
   // Overlays e seções
   const onboardOverlay = document.getElementById('onboard-overlay');
   const loginOverlay   = document.getElementById('login-overlay');
@@ -937,7 +941,7 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
+    // Se houver token e empresa (URL ou cache), solicita senha (ou usa ?senha)
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
