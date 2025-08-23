@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { getTokenByEmpresa } from './checkCompany.js';
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -24,8 +25,6 @@ export async function handler(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados incompletos' }) };
   }
 
-  const key = `monitorByEmpresa:${empresa.toLowerCase()}`;
-
   let redis;
   try {
     redis = Redis.fromEnv();
@@ -38,7 +37,7 @@ export async function handler(event) {
   }
 
   try {
-    const token = await redis.get(key);
+    const token = await getTokenByEmpresa(empresa, redis);
     if (!token) {
       return { statusCode: 404, body: JSON.stringify({ error: 'Empresa não encontrada' }) };
     }

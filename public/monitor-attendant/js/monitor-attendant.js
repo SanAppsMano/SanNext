@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Overlays e seções
+  const companyOverlay = document.getElementById('company-overlay');
   const onboardOverlay = document.getElementById('onboard-overlay');
   const loginOverlay   = document.getElementById('login-overlay');
   const headerEl       = document.querySelector('.header');
@@ -67,10 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
   updateClock();
   setInterval(updateClock, 60000);
 
-  const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
   const loginSubmit   = document.getElementById('login-submit');
   const loginError    = document.getElementById('login-error');
+
+  const companyName   = document.getElementById('company-name');
+  const companySubmit = document.getElementById('company-submit');
+  const companyError  = document.getElementById('company-error');
 
   // Botão Redefinir Cadastro
   const btnDeleteConfig = document.getElementById('btn-delete-config');
@@ -931,6 +935,7 @@ function startBouncingCompanyName(text) {
 
   /** Exibe a interface principal após autenticação */
   function showApp(label, tId) {
+    companyOverlay.hidden = true;
     onboardOverlay.hidden = true;
     loginOverlay.hidden   = true;
     headerEl.hidden       = false;
@@ -950,6 +955,7 @@ function startBouncingCompanyName(text) {
 
     // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
     if (token && empresaParam) {
+      companyOverlay.hidden = true;
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
       try {
@@ -972,16 +978,47 @@ function startBouncingCompanyName(text) {
       }
     }
 
-    // 3) Senão, exibir onboarding para trial
-    onboardOverlay.hidden = false;
+    // 3) Senão, solicitar empresa
+    companyOverlay.hidden = false;
+    onboardOverlay.hidden = true;
     loginOverlay.hidden   = true;
+    if (empresaParam) companyName.value = empresaParam;
 
+    companySubmit.onclick = async () => {
+      const empresa = companyName.value.trim();
+      if (!empresa) {
+        companyError.textContent = 'Informe a empresa.';
+        return;
+      }
+      companyError.textContent = '';
+      try {
+        const res = await fetch('/.netlify/functions/checkCompany', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empresa })
+        });
+        const data = await res.json();
+        empresaParam = empresa;
+        if (data.exists) {
+          companyOverlay.hidden = true;
+          loginOverlay.hidden = false;
+          loginPassword.value = '';
+        } else {
+          companyOverlay.hidden = true;
+          onboardOverlay.hidden = false;
+          onboardLabel.value = empresa;
+          onboardPassword.value = '';
+        }
+      } catch (e) {
+        console.error(e);
+        companyError.textContent = 'Erro ao verificar empresa.';
+      }
+    };
 
     loginSubmit.onclick = async () => {
-      const empresa = loginCompany.value.trim();
-      const pw      = loginPassword.value;
-      if (!empresa || !pw) {
-        loginError.textContent = 'Preencha empresa e senha.';
+      const pw = loginPassword.value;
+      if (!pw) {
+        loginError.textContent = 'Preencha a senha.';
         return;
       }
       loginError.textContent = '';
@@ -989,7 +1026,7 @@ function startBouncingCompanyName(text) {
         const res = await fetch('/.netlify/functions/getMonitorToken', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empresa, senha: pw })
+          body: JSON.stringify({ empresa: empresaParam, senha: pw })
         });
         let data;
         let text;

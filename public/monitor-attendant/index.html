@@ -22,8 +22,18 @@
   </script>
 </head>
 <body>
+  <!-- Overlay de Empresa -->
+  <div id="company-overlay">
+    <div class="login-box">
+      <h2>Empresa</h2>
+      <input id="company-name" type="text" placeholder="Empresa" />
+      <button id="company-submit">Continuar</button>
+      <div id="company-error" class="error"></div>
+    </div>
+  </div>
+
   <!-- Overlay de Onboarding -->
-  <div id="onboard-overlay">
+  <div id="onboard-overlay" hidden>
     <div class="onboard-box">
       <h2>Configurar Monitor</h2>
       <label>Nome da Empresa</label>
@@ -63,7 +73,6 @@
   <div id="login-overlay" hidden>
     <div class="login-box">
       <h2>Login Atendente</h2>
-      <input id="login-company" type="text" placeholder="Empresa" />
       <input id="login-password" type="password" placeholder="Senha" autocomplete="current-password" />
       <button id="login-submit">Entrar</button>
       <div id="login-error" class="error"></div>
