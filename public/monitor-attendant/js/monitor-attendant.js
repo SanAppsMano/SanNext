@@ -942,13 +942,7 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // 1) Se já temos cfg em localStorage, pular direto
-    if (cfg && cfg.empresa && cfg.senha && token) {
-      showApp(cfg.empresa, token);
-      return;
-    }
-
-    // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
+    // Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
@@ -971,8 +965,7 @@ function startBouncingCompanyName(text) {
         history.replaceState(null, '', '/monitor-attendant/');
       }
     }
-
-    // 3) Senão, exibir onboarding para trial
+    // Senão, exibir onboarding para trial
     onboardOverlay.hidden = false;
     loginOverlay.hidden   = true;
 
