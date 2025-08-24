@@ -23,6 +23,8 @@ export async function handler(event) {
     await redis.set(`tenant:${tenantId}:callCounter`,  0);
     await redis.set(`tenant:${tenantId}:currentCall`,  0);
     await redis.set(`tenant:${tenantId}:currentCallTs`, Date.now());
+    await redis.set(`tenant:${tenantId}:logoutVersion`, 0);
+    await redis.del(`tenant:${tenantId}:clones`);
 
     return {
       statusCode: 200,

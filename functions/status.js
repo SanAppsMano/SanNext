@@ -17,13 +17,14 @@ export async function handler(event) {
   }
   const prefix = `tenant:${tenantId}:`;
 
-  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw] =
+  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
     await redis.mget(
       prefix + "currentCall",
       prefix + "callCounter",
       prefix + "ticketCounter",
       prefix + "currentAttendant",
-      prefix + "currentCallTs"
+      prefix + "currentCallTs",
+      prefix + "logoutVersion"
     );
   const currentCall   = Number(currentCallRaw || 0);
   const callCounter   = Number(callCounterRaw || 0);
@@ -60,6 +61,7 @@ export async function handler(event) {
       attendedCount,
       waiting,
       names: nameMap || {},
+      logoutVersion: Number(logoutVersionRaw || 0),
     }),
   };
 }

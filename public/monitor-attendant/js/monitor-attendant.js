@@ -15,8 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let token           = urlParams.get('t');
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
+  const isClone       = urlParams.get('clone') === '1';
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
+  let logoutVersion   = localStorage.getItem('logoutVersion');
+  logoutVersion       = logoutVersion !== null ? Number(logoutVersion) : null;
+  let cloneId         = localStorage.getItem('cloneId');
+  if (!cloneId) {
+    cloneId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now() + Math.random());
+    localStorage.setItem('cloneId', cloneId);
+  }
 
   // Se token não veio na URL mas existe em localStorage, usar
   if (!token && cfg && cfg.token) {
@@ -132,6 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReport      = document.getElementById('btn-report');
   const btnView        = document.getElementById('btn-view-monitor');
   const btnEditSchedule= document.getElementById('btn-edit-schedule');
+  const btnClone       = document.getElementById('btn-clone');
+  const btnChangePw    = document.getElementById('btn-change-password');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
@@ -140,6 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewModal      = document.getElementById('view-modal');
   const viewClose      = document.getElementById('view-close');
   const viewQrEl       = document.getElementById('view-qrcode');
+  const cloneModal     = document.getElementById('clone-modal');
+  const cloneClose     = document.getElementById('clone-close');
+  const cloneQrEl      = document.getElementById('clone-qrcode');
   const scheduleModal  = document.getElementById('schedule-modal');
   const scheduleClose  = document.getElementById('schedule-close');
   const scheduleSave   = document.getElementById('schedule-save');
@@ -150,12 +163,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const editUse2       = document.getElementById('edit-use2');
   const editStart2     = document.getElementById('edit-start2');
   const editEnd2       = document.getElementById('edit-end2');
+  const passwordModal  = document.getElementById('password-modal');
+  const passwordClose  = document.getElementById('password-close');
+  const passwordSave   = document.getElementById('password-save');
+  const passwordCurrent= document.getElementById('password-current');
+  const passwordNew    = document.getElementById('password-new');
+  const passwordError  = document.getElementById('password-error');
+  const cloneListEl    = document.getElementById('clone-list');
+  const clonesPanel    = document.querySelector('.clones-panel');
 
   toggleInterval(editUse1, editStart1, editEnd1);
   toggleInterval(editUse2, editStart2, editEnd2);
 
+  if (isClone) {
+    if (btnDeleteConfig) { btnDeleteConfig.hidden = true; btnDeleteConfig.onclick = null; }
+    if (btnView)         { btnView.hidden = true; btnView.onclick = null; }
+    if (btnEditSchedule) { btnEditSchedule.hidden = true; btnEditSchedule.onclick = null; }
+    if (btnClone)        btnClone.hidden = true;
+    if (btnChangePw)     btnChangePw.hidden = true;
+    const qrPanel = document.querySelector('.qrcode-panel');
+    if (qrPanel) qrPanel.style.display = 'none';
+    if (clonesPanel) clonesPanel.hidden = true;
+  }
+
   btnEditSchedule.onclick = () => {
-    if (!cfg || !cfg.schedule) return;
+    if (isClone || !cfg || !cfg.schedule) return;
     const s = cfg.schedule;
     editDays.forEach(d => {
       d.checked = s.days.includes(Number(d.value));
@@ -186,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   scheduleSave.onclick = async () => {
+    if (isClone) return;
     const days = Array.from(editDays).filter(d => d.checked).map(d => Number(d.value));
     const intervals = [];
     if (editUse1.checked) intervals.push({ start: editStart1.value, end: editEnd1.value });
@@ -205,6 +238,45 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       alert('Erro ao salvar horário.');
       console.error(e);
+    }
+  };
+
+  btnClone.onclick = () => openCloneModal(token);
+  cloneClose.onclick = () => {
+    cloneModal.hidden = true;
+    const info = document.getElementById('clone-copy-info');
+    if (info) info.hidden = true;
+  };
+
+  btnChangePw.onclick = () => {
+    passwordError.textContent = '';
+    passwordCurrent.value = '';
+    passwordNew.value = '';
+    passwordModal.hidden = false;
+  };
+  passwordClose.onclick = () => { passwordModal.hidden = true; };
+  passwordSave.onclick = async () => {
+    const senhaAtual = passwordCurrent.value.trim();
+    const novaSenha  = passwordNew.value.trim();
+    if (!senhaAtual || !novaSenha) {
+      passwordError.textContent = 'Preencha todos os campos';
+      return;
+    }
+    try {
+      const res = await fetch(`${location.origin}/.netlify/functions/changePassword`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, senhaAtual, novaSenha })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        passwordModal.hidden = true;
+        alert('Senha alterada. Faça login novamente.');
+      } else {
+        passwordError.textContent = data.error || 'Erro ao alterar senha';
+      }
+    } catch (e) {
+      passwordError.textContent = 'Erro de conexão';
     }
   };
 
@@ -449,8 +521,17 @@ function startBouncingCompanyName(text) {
         missedCount: mc = 0,
         attendedCount: ac = 0,
         waiting = 0,
-        names = {}
+        names = {},
+        logoutVersion: srvLogoutVersion = 0
       } = await res.json();
+
+      if (logoutVersion !== null && srvLogoutVersion !== logoutVersion) {
+        localStorage.clear();
+        location.href = '/monitor-attendant/';
+        return;
+      }
+      logoutVersion = srvLogoutVersion;
+      localStorage.setItem('logoutVersion', String(logoutVersion));
 
       currentCallNum  = currentCall;
       ticketCounter   = tc;
@@ -555,7 +636,7 @@ function startBouncingCompanyName(text) {
   }
 
   function refreshAll(t) {
-    fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); });
+    fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); loadCloneList(t); });
   }
 
   async function openReport(t) {
@@ -868,6 +949,61 @@ function startBouncingCompanyName(text) {
     viewModal.hidden = false;
   }
 
+  function openCloneModal(t) {
+    if (!t) return;
+    cloneQrEl.innerHTML = '';
+    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&clone=1`;
+    new QRCode(cloneQrEl, { text: url, width: 256, height: 256 });
+    navigator.clipboard.writeText(url).then(() => {
+      const info = document.getElementById('clone-copy-info');
+      if (info) info.hidden = false;
+    }).catch(() => {});
+    cloneModal.hidden = false;
+  }
+
+  async function registerClone(t) {
+    try {
+      await fetch(`${location.origin}/.netlify/functions/registerClone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: t, cloneId })
+      });
+    } catch (e) { console.error('registerClone', e); }
+  }
+
+  async function revokeClone(t, id) {
+    if (!confirm('Revogar clone?')) return;
+    try {
+      await fetch(`${location.origin}/.netlify/functions/cancelClone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: t, cloneId: id })
+      });
+    } catch (e) { console.error('cancelClone', e); }
+    loadCloneList(t);
+  }
+
+  async function loadCloneList(t) {
+    if (isClone || !cloneListEl) return;
+    try {
+      const res = await fetch(`/.netlify/functions/listClones?t=${t}`);
+      const { clones = [] } = await res.json();
+      cloneListEl.innerHTML = '';
+      clones.filter(c => c !== cloneId).forEach(id => {
+        const li = document.createElement('li');
+        li.textContent = id;
+        const b = document.createElement('button');
+        b.textContent = 'Revogar';
+        b.className = 'btn btn-secondary';
+        b.onclick = () => revokeClone(t, id);
+        li.appendChild(b);
+        cloneListEl.appendChild(li);
+      });
+    } catch (e) {
+      console.error('listClones', e);
+    }
+  }
+
   /** Inicializa botões e polling */
   function initApp(t) {
     document.addEventListener('visibilitychange', () => {
@@ -932,6 +1068,7 @@ function startBouncingCompanyName(text) {
       if (info) info.hidden = true;
     };
     renderQRCode(t);
+    registerClone(t);
     refreshAll(t);
     clearInterval(pollingId);
     pollingId = setInterval(() => refreshAll(t), 8000);
