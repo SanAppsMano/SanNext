@@ -76,6 +76,9 @@ body {
   font-size: 1rem;
   cursor: pointer;
 }
+#onboard-submit {
+  margin-bottom: 1rem;
+}
 .onboard-box .error {
   margin-top: 0.5rem;
   color: var(--danger);
