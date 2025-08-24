@@ -132,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReport      = document.getElementById('btn-report');
   const btnView        = document.getElementById('btn-view-monitor');
   const btnEditSchedule= document.getElementById('btn-edit-schedule');
-  const btnDebugData   = document.getElementById('btn-debug-data');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
@@ -141,9 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewModal      = document.getElementById('view-modal');
   const viewClose      = document.getElementById('view-close');
   const viewQrEl       = document.getElementById('view-qrcode');
-  const debugModal     = document.getElementById('debug-modal');
-  const debugClose     = document.getElementById('debug-close');
-  const debugContent   = document.getElementById('debug-content');
   const scheduleModal  = document.getElementById('schedule-modal');
   const scheduleClose  = document.getElementById('schedule-close');
   const scheduleSave   = document.getElementById('schedule-save');
@@ -210,36 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Erro ao salvar horário.');
       console.error(e);
     }
-  };
-
-  btnDebugData.onclick = async () => {
-    try {
-      const res = await fetch(`${location.origin}/.netlify/functions/debugMonitorData`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: cfg.token, senha: cfg.senha })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro');
-      debugContent.textContent = JSON.stringify({
-        empresa: data.empresa,
-        tokenIn: data.tokenIn,
-        tokenRedis: data.tokenRedis,
-        tokenMatch: data.tokenMatch,
-        pwHash: data.pwHash,
-        inputHash: data.inputHash,
-        schedule: data.schedule,
-        valid: data.valid
-      }, null, 2);
-      debugModal.hidden = false;
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao obter dados gravados.');
-    }
-  };
-
-  debugClose.onclick = () => {
-    debugModal.hidden = true;
   };
 
   // Botão de relatório oculto até haver dados
@@ -1023,17 +989,7 @@ function startBouncingCompanyName(text) {
             body: JSON.stringify({ token, senha: senhaPrompt })
           });
           const dbgData = await dbgRes.json();
-          debugContent.textContent = JSON.stringify({
-            empresa: dbgData.empresa,
-            tokenIn: dbgData.tokenIn,
-            tokenRedis: dbgData.tokenRedis,
-            tokenMatch: dbgData.tokenMatch,
-            pwHash: dbgData.pwHash,
-            inputHash: dbgData.inputHash,
-            schedule: dbgData.schedule,
-            valid: dbgData.valid
-          }, null, 2);
-          debugModal.hidden = false;
+          console.log('debugMonitorData', dbgData);
         } catch (e) {
           console.error('debugMonitorData falhou:', e);
         }
