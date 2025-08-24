@@ -967,8 +967,9 @@ function startBouncingCompanyName(text) {
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
+      let senhaPrompt;
       try {
-        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+        senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
         const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -982,7 +983,13 @@ function startBouncingCompanyName(text) {
         showApp(empresa, token);
         return;
       } catch {
-        alert('Token ou senha inválidos.');
+        alert(
+          `Token ou senha inválidos.\n` +
+          `Senha correta (local): ${cfg?.senha ?? '(nenhuma)'}\n` +
+          `Senha digitada: ${senhaPrompt}\n` +
+          `Token correto (local): ${cfg?.token ?? '(nenhum)'}\n` +
+          `Token enviado: ${token}`
+        );
         history.replaceState(null, '', '/monitor-attendant/');
       }
     }
