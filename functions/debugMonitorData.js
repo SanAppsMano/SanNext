@@ -1,4 +1,4 @@
-// functions/getMonitorConfig.js
+// functions/debugMonitorData.js
 const { Redis } = require('@upstash/redis');
 const bcrypt = require('bcryptjs');
 
@@ -24,22 +24,15 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Token ou senha ausente' }) };
   }
 
-  let data, hash;
+  let data, pwHash;
   try {
-    [data, hash] = await redisClient.mget(
+    [data, pwHash] = await redisClient.mget(
       `monitor:${token}`,
       `tenant:${token}:pwHash`
     );
   } catch (err) {
-    console.error('Redis fetch error:', err);
+    console.error('Redis mget error:', err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
-  }
-
-  if (!data) {
-    return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
-  }
-  if (!hash) {
-    return { statusCode: 404, body: JSON.stringify({ error: 'Senha não configurada' }) };
   }
 
   let stored;
@@ -49,29 +42,25 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos no Redis' }) };
   }
 
-  if (!stored) {
-    return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
-  }
+  const empresa   = stored ? stored.empresa : null;
+  const schedule  = stored ? stored.schedule : null;
+  const tokenRedis = stored ? token : null;
+  const tokenMatch = !!stored;
 
-  const valid = await bcrypt.compare(senha, hash);
-  if (!valid) {
-    return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
-  }
-
-  let schedule = stored.schedule;
-  if (!schedule) {
-    try {
-      const schedRaw = await redisClient.get(`tenant:${token}:schedule`);
-      if (schedRaw) {
-        schedule = typeof schedRaw === 'string' ? JSON.parse(schedRaw) : schedRaw;
-      }
-    } catch (err) {
-      console.error('schedule fetch error:', err);
-    }
-  }
+  const valid     = pwHash ? await bcrypt.compare(senha, pwHash) : false;
+  const inputHash = pwHash ? bcrypt.hashSync(senha, pwHash) : null;
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ empresa: stored.empresa, schedule })
+    body: JSON.stringify({
+      empresa,
+      schedule,
+      pwHash: pwHash || null,
+      inputHash,
+      valid,
+      tokenIn: token,
+      tokenRedis,
+      tokenMatch
+    })
   };
 };
