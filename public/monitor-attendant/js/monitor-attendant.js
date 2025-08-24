@@ -950,7 +950,7 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // 1) Se já temos cfg em localStorage, pular direto
+    // 1) Se já temos cfg em localStorage, revalidar com o backend
     if (cfg && cfg.empresa && cfg.senha && token) {
       if (empresaParam && cfg.empresa !== empresaParam) {
         // Nome de empresa na URL difere do salvo, descartar configuração
@@ -958,8 +958,23 @@ function startBouncingCompanyName(text) {
         cfg = null;
         token = urlParams.get('t');
       } else {
-        showApp(cfg.empresa, token);
-        return;
+        try {
+          const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, senha: cfg.senha })
+          });
+          if (!res.ok) throw new Error();
+          const { empresa, schedule } = await res.json();
+          cfg = { token, empresa, senha: cfg.senha, schedule };
+          localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+          showApp(empresa, token);
+          return;
+        } catch {
+          localStorage.removeItem('monitorConfig');
+          cfg = null;
+          token = urlParams.get('t');
+        }
       }
     }
 
