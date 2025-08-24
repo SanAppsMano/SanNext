@@ -532,7 +532,8 @@ function startBouncingCompanyName(text) {
 
       if (logoutVersion !== null && srvLogoutVersion !== logoutVersion) {
         localStorage.clear();
-        location.href = isClone ? '/monitor-attendant/?clone=1' : '/monitor-attendant/';
+        history.replaceState(null, '', '/');
+        location.href = '/';
         return;
       }
       logoutVersion = srvLogoutVersion;
@@ -996,7 +997,8 @@ function startBouncingCompanyName(text) {
       if (isClone) {
         if (!clones.includes(cloneId)) {
           localStorage.clear();
-          location.href = '/monitor-attendant/?clone=1';
+          history.replaceState(null, '', '/');
+          location.href = '/';
         }
         return;
       }
