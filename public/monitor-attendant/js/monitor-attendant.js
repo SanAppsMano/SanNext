@@ -982,27 +982,38 @@ function startBouncingCompanyName(text) {
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
-      let senhaPrompt;
+      let senhaPrompt = cfg?.senha || senhaParam;
+      if (!senhaPrompt) {
+        senhaPrompt = prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+      }
       try {
-        senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
         const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
-        if (!res.ok) throw new Error();
-        const { empresa, schedule } = await res.json();
-        cfg = { token, empresa, senha: senhaPrompt, schedule };
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(
+            `Token ou senha inválidos.\n` +
+            `Senha correta (servidor): ${data?.senha ?? '(nenhuma)'}\n` +
+            `Senha digitada: ${senhaPrompt}\n` +
+            `Token correto (servidor): ${data?.token ?? '(nenhum)'}\n` +
+            `Token enviado: ${token}`
+          );
+          history.replaceState(null, '', '/monitor-attendant/');
+          return;
+        }
+        const { empresa, schedule, senha: serverSenha } = data;
+        cfg = { token, empresa, senha: serverSenha, schedule };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
         showApp(empresa, token);
         return;
       } catch {
         alert(
-          `Token ou senha inválidos.\n` +
-          `Senha correta (local): ${cfg?.senha ?? '(nenhuma)'}\n` +
+          `Erro ao validar com o servidor.\n` +
           `Senha digitada: ${senhaPrompt}\n` +
-          `Token correto (local): ${cfg?.token ?? '(nenhum)'}\n` +
           `Token enviado: ${token}`
         );
         history.replaceState(null, '', '/monitor-attendant/');
