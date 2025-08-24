@@ -94,6 +94,9 @@
   <button id="btn-edit-schedule" class="btn btn-secondary">
     Editar Horário
   </button>
+  <button id="btn-debug-data" class="btn btn-secondary">
+    Ver dados gravados
+  </button>
 </header>
 
   <!-- Conteúdo Principal -->
@@ -220,6 +223,15 @@
       <div id="view-qrcode"></div>
       <p>Escaneie para visualizar apenas o painel.</p>
       <p id="view-copy-info" class="copy-info" hidden>Link copiado para a área de transferência.</p>
+    </div>
+  </div>
+
+  <!-- Modal de Debug -->
+  <div id="debug-modal" hidden>
+    <div class="modal-content">
+      <span id="debug-close" class="close">&times;</span>
+      <h2>Dados Gravados</h2>
+      <pre id="debug-content"></pre>
     </div>
   </div>
 </body>
