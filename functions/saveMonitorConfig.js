@@ -44,7 +44,7 @@ exports.handler = async (event) => {
     const pwHash = await bcrypt.hash(senha, 10);
     await redis.set(
       `monitor:${token}`,
-      JSON.stringify({ empresa, schedule }),
+      JSON.stringify({ empresa, senha, schedule }),
       { ex: ttl }
     );
     await redis.set(

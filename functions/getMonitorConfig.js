@@ -51,7 +51,10 @@ exports.handler = async (event) => {
 
   const valid = await bcrypt.compare(senha, hash);
   if (!valid) {
-    return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: 'Senha inválida', senha: stored.senha, token })
+    };
   }
 
   let schedule = stored.schedule;
@@ -68,6 +71,6 @@ exports.handler = async (event) => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ empresa: stored.empresa, schedule })
+    body: JSON.stringify({ empresa: stored.empresa, schedule, senha: stored.senha })
   };
 };

@@ -950,7 +950,7 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // 1) Se já temos cfg em localStorage, pular direto
+    // 1) Se já temos cfg em localStorage, revalidar com o backend
     if (cfg && cfg.empresa && cfg.senha && token) {
       if (empresaParam && cfg.empresa !== empresaParam) {
         // Nome de empresa na URL difere do salvo, descartar configuração
@@ -958,8 +958,23 @@ function startBouncingCompanyName(text) {
         cfg = null;
         token = urlParams.get('t');
       } else {
-        showApp(cfg.empresa, token);
-        return;
+        try {
+          const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, senha: cfg.senha })
+          });
+          if (!res.ok) throw new Error();
+          const { empresa, schedule, senha: senhaServidor } = await res.json();
+          cfg = { token, empresa, senha: senhaServidor, schedule };
+          localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+          showApp(empresa, token);
+          return;
+        } catch {
+          localStorage.removeItem('monitorConfig');
+          cfg = null;
+          token = urlParams.get('t');
+        }
       }
     }
 
@@ -967,22 +982,42 @@ function startBouncingCompanyName(text) {
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
+      let senhaPrompt;
       try {
-        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+        senhaPrompt = cfg?.senha || senhaParam;
+        if (!senhaPrompt) {
+          senhaPrompt = prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+        }
         const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
-        if (!res.ok) throw new Error();
-        const { empresa, schedule } = await res.json();
-        cfg = { token, empresa, senha: senhaPrompt, schedule };
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(
+            `Token ou senha inválidos.\n` +
+            `Senha correta (servidor): ${data?.senha ?? '(nenhuma)'}\n` +
+            `Senha digitada: ${senhaPrompt}\n` +
+            `Token correto (servidor): ${data?.token ?? '(nenhum)'}\n` +
+            `Token enviado: ${token}`
+          );
+          history.replaceState(null, '', '/monitor-attendant/');
+          return;
+        }
+        const { empresa, schedule, senha: senhaServidor, token: tokenServidor } = data;
+        token = tokenServidor ?? token;
+        cfg = { token, empresa, senha: senhaServidor ?? senhaPrompt, schedule };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
         showApp(empresa, token);
         return;
       } catch {
-        alert('Token ou senha inválidos.');
+        alert(
+          `Erro ao validar com o servidor.\n` +
+          `Senha digitada: ${senhaPrompt}\n` +
+          `Token enviado: ${token}`
+        );
         history.replaceState(null, '', '/monitor-attendant/');
       }
     }
