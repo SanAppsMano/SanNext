@@ -527,7 +527,7 @@ function startBouncingCompanyName(text) {
 
       if (logoutVersion !== null && srvLogoutVersion !== logoutVersion) {
         localStorage.clear();
-        location.href = '/monitor-attendant/';
+        location.href = isClone ? '/monitor-attendant/?clone=1' : '/monitor-attendant/';
         return;
       }
       logoutVersion = srvLogoutVersion;
@@ -984,10 +984,18 @@ function startBouncingCompanyName(text) {
   }
 
   async function loadCloneList(t) {
-    if (isClone || !cloneListEl) return;
+    if (!t) return;
     try {
       const res = await fetch(`/.netlify/functions/listClones?t=${t}`);
       const { clones = [] } = await res.json();
+      if (isClone) {
+        if (!clones.includes(cloneId)) {
+          localStorage.clear();
+          location.href = '/monitor-attendant/?clone=1';
+        }
+        return;
+      }
+      if (!cloneListEl) return;
       cloneListEl.innerHTML = '';
       clones.filter(c => c !== cloneId).forEach(id => {
         const li = document.createElement('li');

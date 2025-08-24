@@ -8,7 +8,6 @@ export async function handler(event) {
     }
     const redis = Redis.fromEnv();
     await redis.srem(`tenant:${token}:clones`, cloneId);
-    await redis.incr(`tenant:${token}:logoutVersion`);
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (e) {
     console.error('cancelClone error', e);
