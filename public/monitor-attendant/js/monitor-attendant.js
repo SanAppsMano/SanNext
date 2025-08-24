@@ -225,7 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
         empresa: data.empresa,
         token: cfg.token,
         pwHash: data.pwHash,
-        schedule: data.schedule
+        inputHash: data.inputHash,
+        schedule: data.schedule,
+        valid: data.valid
       }, null, 2);
       debugModal.hidden = false;
     } catch (e) {
@@ -997,8 +999,8 @@ function startBouncingCompanyName(text) {
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
+      const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
       try {
-        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
         const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -1012,6 +1014,27 @@ function startBouncingCompanyName(text) {
         showApp(empresa, token);
         return;
       } catch {
+        try {
+          const dbgRes = await fetch(`${location.origin}/.netlify/functions/debugMonitorData`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, senha: senhaPrompt })
+          });
+          const dbgData = await dbgRes.json();
+          if (dbgRes.ok) {
+            debugContent.textContent = JSON.stringify({
+              empresa: dbgData.empresa,
+              token,
+              pwHash: dbgData.pwHash,
+              inputHash: dbgData.inputHash,
+              schedule: dbgData.schedule,
+              valid: dbgData.valid
+            }, null, 2);
+            debugModal.hidden = false;
+          }
+        } catch (e) {
+          console.error('debugMonitorData falhou:', e);
+        }
         alert('Token ou senha inválidos.');
         history.replaceState(null, '', '/monitor-attendant/');
       }
