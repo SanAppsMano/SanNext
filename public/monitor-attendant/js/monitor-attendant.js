@@ -15,7 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let token           = urlParams.get('t');
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
-  const isClone       = urlParams.get('clone') === '1';
+  let isClone         = urlParams.get('clone') === '1' || localStorage.getItem('isClone') === '1';
+  if (isClone) {
+    localStorage.setItem('isClone', '1');
+  } else {
+    localStorage.removeItem('isClone');
+  }
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
   let logoutVersion   = localStorage.getItem('logoutVersion');
