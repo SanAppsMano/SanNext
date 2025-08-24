@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardLabel    = document.getElementById('onboard-label');
   const onboardPassword = document.getElementById('onboard-password');
   const onboardSubmit   = document.getElementById('onboard-submit');
+  const onboardLogin    = document.getElementById('onboard-login');
   const onboardError    = document.getElementById('onboard-error');
   const scheduleDays    = document.querySelectorAll('input[name="work-day"]');
   const use1Checkbox    = document.getElementById('use1');
@@ -1197,6 +1198,39 @@ function startBouncingCompanyName(text) {
       } catch (e) {
         console.error(e);
         loginError.textContent = 'Empresa ou senha inválida.';
+      }
+    };
+
+    onboardLogin.onclick = async () => {
+      const label = onboardLabel.value.trim();
+      const pw    = onboardPassword.value;
+      if (!label || !pw) {
+        onboardError.textContent = 'Preencha nome e senha.';
+        return;
+      }
+      onboardError.textContent = '';
+      try {
+        const res = await fetch('/.netlify/functions/getMonitorToken', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empresa: label, senha: pw })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.token) throw new Error();
+        token = data.token;
+        const cfgRes = await fetch('/.netlify/functions/getMonitorConfig', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, senha: pw })
+        });
+        const cfgData = await cfgRes.json();
+        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule };
+        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
+        showApp(cfgData.empresa, token);
+      } catch (e) {
+        console.error(e);
+        onboardError.textContent = 'Empresa ou senha inválida.';
       }
     };
 
