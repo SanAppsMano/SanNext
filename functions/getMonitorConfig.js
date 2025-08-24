@@ -44,9 +44,13 @@ exports.handler = async (event) => {
 
   let stored;
   try {
-    stored = JSON.parse(data);
+    stored = data ? (typeof data === 'string' ? JSON.parse(data) : data) : null;
   } catch {
     return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos no Redis' }) };
+  }
+
+  if (!stored) {
+    return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
   }
 
   const valid = await bcrypt.compare(senha, hash);
