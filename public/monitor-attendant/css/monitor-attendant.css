@@ -580,6 +580,36 @@ body {
   margin: 1rem auto;
 }
 
+#clone-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#clone-modal[hidden] {
+  display: none !important;
+}
+#clone-modal .modal-content {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+#clone-modal .close {
+  float: right;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+#clone-qrcode {
+  margin: 1rem auto;
+}
+
 /* Modal de edição de horário */
 #schedule-modal {
   position: fixed;
