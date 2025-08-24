@@ -35,24 +35,32 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 
-  if (!data || !pwHash) {
-    return { statusCode: 404, body: JSON.stringify({ error: 'Dados não encontrados' }) };
-  }
-
-  const valid = await bcrypt.compare(senha, pwHash);
-  const inputHash = bcrypt.hashSync(senha, pwHash);
-
   let stored;
   try {
-    stored = typeof data === 'string' ? JSON.parse(data) : data;
+    stored = data ? (typeof data === 'string' ? JSON.parse(data) : data) : null;
   } catch {
     return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos no Redis' }) };
   }
 
-  const { empresa, schedule } = stored || {};
+  const empresa   = stored ? stored.empresa : null;
+  const schedule  = stored ? stored.schedule : null;
+  const tokenRedis = stored ? token : null;
+  const tokenMatch = !!stored;
+
+  const valid     = pwHash ? await bcrypt.compare(senha, pwHash) : false;
+  const inputHash = pwHash ? bcrypt.hashSync(senha, pwHash) : null;
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ empresa, schedule, pwHash, inputHash, valid })
+    body: JSON.stringify({
+      empresa,
+      schedule,
+      pwHash: pwHash || null,
+      inputHash,
+      valid,
+      tokenIn: token,
+      tokenRedis,
+      tokenMatch
+    })
   };
 };

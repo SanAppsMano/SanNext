@@ -223,7 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) throw new Error(data.error || 'Erro');
       debugContent.textContent = JSON.stringify({
         empresa: data.empresa,
-        token: cfg.token,
+        tokenIn: data.tokenIn,
+        tokenRedis: data.tokenRedis,
+        tokenMatch: data.tokenMatch,
         pwHash: data.pwHash,
         inputHash: data.inputHash,
         schedule: data.schedule,
@@ -1021,17 +1023,17 @@ function startBouncingCompanyName(text) {
             body: JSON.stringify({ token, senha: senhaPrompt })
           });
           const dbgData = await dbgRes.json();
-          if (dbgRes.ok) {
-            debugContent.textContent = JSON.stringify({
-              empresa: dbgData.empresa,
-              token,
-              pwHash: dbgData.pwHash,
-              inputHash: dbgData.inputHash,
-              schedule: dbgData.schedule,
-              valid: dbgData.valid
-            }, null, 2);
-            debugModal.hidden = false;
-          }
+          debugContent.textContent = JSON.stringify({
+            empresa: dbgData.empresa,
+            tokenIn: dbgData.tokenIn,
+            tokenRedis: dbgData.tokenRedis,
+            tokenMatch: dbgData.tokenMatch,
+            pwHash: dbgData.pwHash,
+            inputHash: dbgData.inputHash,
+            schedule: dbgData.schedule,
+            valid: dbgData.valid
+          }, null, 2);
+          debugModal.hidden = false;
         } catch (e) {
           console.error('debugMonitorData falhou:', e);
         }
