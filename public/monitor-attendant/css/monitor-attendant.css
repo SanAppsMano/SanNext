@@ -755,6 +755,10 @@ body {
   margin-left: auto;
 }
 
+#clone-revoke {
+  margin-left: auto;
+}
+
 /* Animação de expansão e fade */
 @keyframes ripple-effect {
   to {
