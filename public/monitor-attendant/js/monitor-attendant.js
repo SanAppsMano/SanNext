@@ -148,6 +148,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnEditSchedule= document.getElementById('btn-edit-schedule');
   const btnClone       = document.getElementById('btn-clone');
   const btnChangePw    = document.getElementById('btn-change-password');
+  const adminToggle    = document.getElementById('admin-toggle');
+  const adminPanel     = document.getElementById('admin-panel');
+  adminToggle?.addEventListener('click', () => {
+    adminPanel.hidden = !adminPanel.hidden;
+  });
+  document.addEventListener('click', (e) => {
+    if (!adminPanel.hidden && !adminPanel.contains(e.target) && e.target !== adminToggle) {
+      adminPanel.hidden = true;
+    }
+  });
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');

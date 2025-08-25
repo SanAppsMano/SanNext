@@ -86,21 +86,19 @@
       <span id="header-schedule" class="header-schedule"></span>
     </div>
   </div>
-  <button id="btn-delete-config" class="btn btn-secondary">
-    Redefinir Cadastro
-  </button>
-  <button id="btn-view-monitor" class="btn btn-secondary">
-    Espelhar Monitor
-  </button>
-  <button id="btn-edit-schedule" class="btn btn-secondary">
-    Editar Horário
-  </button>
-  <button id="btn-clone" class="btn btn-secondary">
-    Clonar Atendente
-  </button>
-  <button id="btn-change-password" class="btn btn-secondary">
-    Trocar Senha
-  </button>
+  <button id="admin-toggle" class="btn btn-secondary" aria-label="Administração">⚙️</button>
+  <nav id="admin-panel" class="admin-panel" hidden>
+    <h3>Administração</h3>
+    <button id="btn-delete-config" class="btn btn-secondary">Redefinir Cadastro</button>
+    <button id="btn-view-monitor" class="btn btn-secondary">Espelhar Monitor</button>
+    <button id="btn-edit-schedule" class="btn btn-secondary">Editar Horário</button>
+    <button id="btn-clone" class="btn btn-secondary">Clonar Atendente</button>
+    <button id="btn-change-password" class="btn btn-secondary">Trocar Senha</button>
+    <div class="clones-panel">
+      <h4>Clones</h4>
+      <ul id="clone-list" class="list"></ul>
+    </div>
+  </nav>
 </header>
 
   <!-- Conteúdo Principal -->
@@ -113,11 +111,6 @@
         <button id="btn-qr-pdf" class="btn btn-secondary" hidden>PDF</button>
       </div>
       <p>Aponte a câmera do celular para este QR para entrar na fila.</p>
-    </section>
-
-    <section class="clones-panel">
-      <h2>Clones</h2>
-      <ul id="clone-list" class="list"></ul>
     </section>
 
     <!-- Painel de Identificador -->
