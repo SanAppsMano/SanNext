@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let token           = urlParams.get('t');
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
+  let attParam        = urlParams.get('a');
   let isClone         = urlParams.get('clone') === '1' || localStorage.getItem('isClone') === '1';
   if (isClone) {
     localStorage.setItem('isClone', '1');
@@ -125,6 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const attendantInput = document.getElementById('attendant-id');
+  if (attParam) {
+    attendantInput.value = attParam;
+  }
   const currentCallEl  = document.getElementById('current-call');
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
@@ -148,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnEditSchedule= document.getElementById('btn-edit-schedule');
   const btnClone       = document.getElementById('btn-clone');
   const btnChangePw    = document.getElementById('btn-change-password');
+  const btnRevokeClone = document.getElementById('clone-revoke');
   const adminToggle    = document.getElementById('admin-toggle');
   const adminPanel     = document.getElementById('admin-panel');
   adminToggle?.addEventListener('click', () => {
@@ -197,6 +202,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnEditSchedule) { btnEditSchedule.hidden = true; btnEditSchedule.onclick = null; }
     if (btnClone)        btnClone.hidden = true;
     if (btnChangePw)     btnChangePw.hidden = true;
+    if (adminToggle)     { adminToggle.hidden = true; adminToggle.onclick = null; }
+    if (adminPanel)      adminPanel.hidden = true;
+    if (btnRevokeClone) {
+      btnRevokeClone.hidden = false;
+      btnRevokeClone.onclick = () => revokeClone(token, cloneId);
+    }
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
     if (clonesPanel) clonesPanel.hidden = true;
@@ -966,10 +977,18 @@ function startBouncingCompanyName(text) {
     viewModal.hidden = false;
   }
 
-  function openCloneModal(t) {
+  async function openCloneModal(t) {
     if (!t) return;
     cloneQrEl.innerHTML = '';
-    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&clone=1`;
+    let seq = 1;
+    try {
+      const res = await fetch(`/.netlify/functions/listClones?t=${t}`);
+      const { clones = [] } = await res.json();
+      seq = clones.filter(c => c !== cloneId).length + 1;
+    } catch (e) { console.error('listClones', e); }
+    const baseId = attendantInput.value.trim();
+    const ident = baseId ? `${baseId} ${seq}` : String(seq);
+    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&clone=1&a=${encodeURIComponent(ident)}`;
     new QRCode(cloneQrEl, { text: url, width: 256, height: 256 });
     navigator.clipboard.writeText(url).then(() => {
       const info = document.getElementById('clone-copy-info');
@@ -1015,9 +1034,10 @@ function startBouncingCompanyName(text) {
       }
       if (!cloneListEl) return;
       cloneListEl.innerHTML = '';
-      clones.filter(c => c !== cloneId).forEach(id => {
+      const base = attendantInput.value.trim() || 'Clone';
+      clones.filter(c => c !== cloneId).forEach((id, idx) => {
         const li = document.createElement('li');
-        li.textContent = id;
+        li.textContent = `${base} ${idx + 1}`;
         const b = document.createElement('button');
         b.textContent = 'Revogar';
         b.className = 'btn btn-secondary';
