@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
   let attParam        = urlParams.get('a');
+  let cloneSeq       = urlParams.get('n');
   let isClone         = urlParams.get('clone') === '1' || localStorage.getItem('isClone') === '1';
   if (isClone) {
     localStorage.setItem('isClone', '1');
@@ -207,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnRevokeClone) {
       btnRevokeClone.hidden = false;
       btnRevokeClone.onclick = () => revokeClone(token, cloneId);
+      if (cloneSeq) btnRevokeClone.textContent = `Revogar ${cloneSeq}`;
     }
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
@@ -986,9 +988,7 @@ function startBouncingCompanyName(text) {
       const { clones = [] } = await res.json();
       seq = clones.filter(c => c !== cloneId).length + 1;
     } catch (e) { console.error('listClones', e); }
-    const baseId = attendantInput.value.trim();
-    const ident = baseId ? `${baseId} ${seq}` : String(seq);
-    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&clone=1&a=${encodeURIComponent(ident)}`;
+    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&clone=1&n=${seq}`;
     new QRCode(cloneQrEl, { text: url, width: 256, height: 256 });
     navigator.clipboard.writeText(url).then(() => {
       const info = document.getElementById('clone-copy-info');
@@ -1034,12 +1034,10 @@ function startBouncingCompanyName(text) {
       }
       if (!cloneListEl) return;
       cloneListEl.innerHTML = '';
-      const base = attendantInput.value.trim() || 'Clone';
       clones.filter(c => c !== cloneId).forEach((id, idx) => {
         const li = document.createElement('li');
-        li.textContent = `${base} ${idx + 1}`;
         const b = document.createElement('button');
-        b.textContent = 'Revogar';
+        b.textContent = `Revogar ${idx + 1}`;
         b.className = 'btn btn-secondary';
         b.onclick = () => revokeClone(t, id);
         li.appendChild(b);
