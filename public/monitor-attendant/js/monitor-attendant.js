@@ -197,6 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnEditSchedule) { btnEditSchedule.hidden = true; btnEditSchedule.onclick = null; }
     if (btnClone)        btnClone.hidden = true;
     if (btnChangePw)     btnChangePw.hidden = true;
+    if (adminToggle)     { adminToggle.hidden = true; adminToggle.onclick = null; }
+    if (adminPanel)      adminPanel.hidden = true;
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
     if (clonesPanel) clonesPanel.hidden = true;
