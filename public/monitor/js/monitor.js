@@ -32,14 +32,11 @@ if (alertSound) {
     }
     alertSound.volume = 1;
     requestWakeLock();
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
     if (unlockOverlay) unlockOverlay.classList.add('hidden');
     document.removeEventListener('click', unlock);
     document.removeEventListener('touchstart', unlock);
     if (unlockOverlay) unlockOverlay.removeEventListener('click', unlock);
-    };
+  };
   document.addEventListener('click', unlock, { once: true });
   document.addEventListener('touchstart', unlock, { once: true });
   if (unlockOverlay) unlockOverlay.addEventListener('click', unlock);
