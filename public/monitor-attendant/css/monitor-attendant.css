@@ -657,6 +657,37 @@ body {
   margin-bottom: 0;
 }
 
+/* Painel administrativo lateral */
+.admin-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 220px;
+  height: 100%;
+  background: #fff;
+  border-left: 2px solid var(--primary);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  z-index: 150;
+}
+
+.admin-panel h3 {
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.admin-panel[hidden] {
+  display: none;
+}
+
+#admin-toggle {
+  margin-left: auto;
+}
+
 /* Animação de expansão e fade */
 @keyframes ripple-effect {
   to {
