@@ -747,6 +747,10 @@ body {
   overflow-y: auto;
 }
 
+.admin-panel .btn {
+  white-space: normal;
+}
+
 .admin-panel[hidden] {
   display: none;
 }
