@@ -1,16 +1,16 @@
 /* public/monitor-attendant/css/monitor-attendant.css */
 
 :root {
-  --primary:    #005f8c;
-  --secondary:  #0077cc;
-  --warning:    #f5a623;
-  --danger:     #d0021b;
-  --success:    #28a745;
-  --bg:         #f5f7fa;
-  --text:       #333;
-  --muted:      #666;
-  --radius:     6px;
-  --font:       'Helvetica Neue', Arial, sans-serif;
+  --primary:    #2563eb;
+  --secondary:  #1d4ed8;
+  --warning:    #f59e0b;
+  --danger:     #ef4444;
+  --success:    #22c55e;
+  --bg:         #f9fafb;
+  --text:       #1f2937;
+  --muted:      #6b7280;
+  --radius:     0.75rem;
+  --font:       'Inter', sans-serif;
 }
 
 * {
@@ -23,6 +23,7 @@ body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
+  line-height: 1.5;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -185,12 +186,13 @@ body {
 
 /* Layout and buttons styling as before */
 .header {
-  background: var(--primary);
-  color: #fff;
+  background: #fff;
+  color: var(--text);
   padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 2px solid var(--primary);
 }
 .logo {
   font-size: 1.5rem;
@@ -203,7 +205,7 @@ body {
 .header-schedule {
   margin-left: 0.5rem;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--primary);
 }
 
 .main {
@@ -218,6 +220,7 @@ body {
   background: #fff;
   padding: 1rem;
   border-radius: var(--radius);
+  border: 1px solid #e5e7eb;
   text-align: left;
 }
 .id-panel label {
@@ -235,7 +238,8 @@ body {
   background: #fff;
   padding: 1rem;
   border-radius: var(--radius);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 .queue-panel h2 {
   font-size: 1.25rem;
@@ -261,29 +265,38 @@ body {
   padding: 0.75rem;
   margin-bottom: 0.5rem;
   font-size: 1rem;
+  font-weight: 500;
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 .btn-primary {
-  background: var(--secondary);
+  background: var(--primary);
   color: #fff;
 }
+.btn-primary:hover {
+  background: var(--secondary);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
 .btn-secondary {
-  background: #eee;
+  background: #e5e7eb;
   color: var(--text);
+}
+.btn-secondary:hover {
+  background: #d1d5db;
 }
 .btn-warning {
   background: var(--warning);
-  color: #333;
+  color: #fff;
+}
+.btn-warning:hover {
+  background: #eab308;
 }
 .btn-success {
   background: var(--success);
   color: #fff;
-}
-.btn-warning:hover {
-  background: #f2a100;
 }
 
 
@@ -376,20 +389,17 @@ body {
 #login-overlay[hidden] {
   display: none !important;
 }
-.header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-}
 
 /* Header principal */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between; /* Logo à esquerda, botão à direita */
+  gap: 1rem;
   padding: 0.75rem 1rem;
-  background-color: #005a9c;
+  background: #fff;
+  color: var(--text);
+  border-bottom: 2px solid var(--primary);
 }
 
 /* Contêiner da logo + textos */
@@ -423,13 +433,13 @@ body {
 .logo-text {
   font-size: 1.65rem;  /* aumentei de 1.5rem para 1.75rem */
   font-weight: 600;
-  color: #ffffff;
+  color: var(--primary);
 }
 
 /* Nome da empresa */
 .company-text {
   font-size: 1.3rem;  /* aumentei de 0.9rem para 1.5rem */
-  color: #ffffff;
+  color: var(--muted);
   margin-top: 0.1rem;
 }
 
@@ -438,7 +448,7 @@ body {
 #btn-delete-config {
   /* ja herda .btn .btn-secondary, mas ajuste se quiser: */
   background-color: #ffffff;
-  color: #005a9c;
+  color: var(--primary);
   border: none;
 }
 /* Texto que vai quicar atrás do QR expandido */
