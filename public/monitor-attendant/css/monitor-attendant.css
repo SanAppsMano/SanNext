@@ -722,6 +722,7 @@ body {
   gap: 0.5rem;
   box-shadow: -2px 0 5px rgba(0,0,0,0.1);
   z-index: 150;
+  overflow-y: auto;
 }
 
 .admin-panel h3 {
@@ -745,6 +746,19 @@ body {
 .admin-panel #clone-list {
   max-height: 7.5rem; /* approx 3 items */
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.admin-panel #clone-list li {
+  display: block;
+}
+
+.admin-panel .btn {
+  display: block;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow: visible;
 }
 
 .admin-panel[hidden] {
