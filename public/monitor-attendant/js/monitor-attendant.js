@@ -361,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let pendingQueue   = [];
   let pollingId;
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
@@ -531,13 +532,15 @@ function startBouncingCompanyName(text) {
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       pending.push(i);
     }
+    pendingQueue = pending;
     pending.forEach(n => {
       const li = document.createElement('li');
       li.dataset.ticket = n;
       const nm = ticketNames[n];
       li.textContent = nm ? `${n} - ${nm}` : String(n);
       li.addEventListener('click', async () => {
-        const ticket = li.dataset.ticket;
+        const ticket = Number(li.dataset.ticket);
+        if (!pendingQueue.includes(ticket)) return;
         const id = attendantInput.value.trim();
         let url = `/.netlify/functions/chamar?t=${token}&num=${ticket}`;
         if (id) url += `&id=${encodeURIComponent(id)}`;
@@ -1087,8 +1090,10 @@ function startBouncingCompanyName(text) {
           !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
         return;
       }
+      const nextTicket = pendingQueue[0];
+      if (!nextTicket) return;
       const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${t}`;
+      let url = `/.netlify/functions/chamar?t=${t}&num=${nextTicket}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
