@@ -1,10 +1,10 @@
 // functions/getTenantConfig.js
 
-const faunadb = require('faunadb')  // exemplo de banco; mantenha o que você já usa
-const q = faunadb.query
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET })
+import faunadb from 'faunadb'; // exemplo de banco; mantenha o que você já usa
+const q = faunadb.query;
+const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
-exports.handler = async (event) => {
+export async function handler(event) {
   try {
     const token = event.queryStringParameters.t
     // --- seu código existente para buscar o tenant ---
@@ -37,3 +37,4 @@ exports.handler = async (event) => {
     }
   }
 }
+
