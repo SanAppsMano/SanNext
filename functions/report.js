@@ -1,45 +1,47 @@
 import { Redis } from "@upstash/redis";
+import errorHandler from "./utils/errorHandler.js";
 
 export async function handler(event) {
-  const url = new URL(event.rawUrl);
-  const tenantId = url.searchParams.get("t");
-  if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
-  }
+  try {
+    const url = new URL(event.rawUrl);
+    const tenantId = url.searchParams.get("t");
+    if (!tenantId) {
+      return { statusCode: 400, body: "Missing tenantId" };
+    }
 
-  const redis = Redis.fromEnv();
-  const [pwHash, monitor] = await redis.mget(
-    `tenant:${tenantId}:pwHash`,
-    `monitor:${tenantId}`
-  );
-  if (!pwHash && !monitor) {
-    return { statusCode: 404, body: "Invalid link" };
-  }
-  const prefix = `tenant:${tenantId}:`;
+    const redis = Redis.fromEnv();
+    const [pwHash, monitor] = await redis.mget(
+      `tenant:${tenantId}:pwHash`,
+      `monitor:${tenantId}`
+    );
+    if (!pwHash && !monitor) {
+      return { statusCode: 404, body: "Invalid link" };
+    }
+    const prefix = `tenant:${tenantId}:`;
 
-  const data = await Promise.all([
-    redis.lrange(prefix + "log:entered", 0, -1),
-    redis.lrange(prefix + "log:called", 0, -1),
-    redis.lrange(prefix + "log:attended", 0, -1),
-    redis.lrange(prefix + "log:cancelled", 0, -1),
-    redis.get(prefix + "ticketCounter"),
-    redis.smembers(prefix + "cancelledSet"),
-    redis.smembers(prefix + "missedSet"),
-    redis.smembers(prefix + "attendedSet"),
-    redis.hgetall(prefix + "ticketNames")
-  ]);
+    const data = await Promise.all([
+      redis.lrange(prefix + "log:entered", 0, -1),
+      redis.lrange(prefix + "log:called", 0, -1),
+      redis.lrange(prefix + "log:attended", 0, -1),
+      redis.lrange(prefix + "log:cancelled", 0, -1),
+      redis.get(prefix + "ticketCounter"),
+      redis.smembers(prefix + "cancelledSet"),
+      redis.smembers(prefix + "missedSet"),
+      redis.smembers(prefix + "attendedSet"),
+      redis.hgetall(prefix + "ticketNames")
+    ]);
 
-  const [
-    enteredRaw,
-    calledRaw,
-    attendedRaw,
-    cancelledRaw,
-    ticketCounterRaw,
-    cancelledSet,
-    missedSet,
-    attendedSet,
-    nameMap
-  ] = data;
+    const [
+      enteredRaw,
+      calledRaw,
+      attendedRaw,
+      cancelledRaw,
+      ticketCounterRaw,
+      cancelledSet,
+      missedSet,
+      attendedSet,
+      nameMap
+    ] = data;
 
   const safeParse = (val) => {
     if (typeof val !== "string") return null;
@@ -158,96 +160,99 @@ export async function handler(event) {
     if (!tk.identifier && identifiers[i]) tk.identifier = identifiers[i];
   }
 
-  const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
-  // Helper para exibir datas no formato brasileiro
-  const format = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
-  const toHms = (ms) => {
-    if (!ms) return null;
-    const s = Math.floor(ms / 1000);
-    const h = String(Math.floor(s / 3600)).padStart(2, '0');
-    const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-    const sec = String(s % 60).padStart(2, '0');
-    return `${h}:${m}:${sec}`;
-  };
+    const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
+    // Helper para exibir datas no formato brasileiro
+    const format = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
+    const toHms = (ms) => {
+      if (!ms) return null;
+      const s = Math.floor(ms / 1000);
+      const h = String(Math.floor(s / 3600)).padStart(2, '0');
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+      const sec = String(s % 60).padStart(2, '0');
+      return `${h}:${m}:${sec}`;
+    };
 
-  // Status e cálculos de tempo atuais
-  const now = Date.now();
-  tickets.forEach(tk => {
-    if (attendedNums.includes(tk.ticket)) {
-      tk.status = "attended";
-    } else if (cancelledNums.includes(tk.ticket) && tk.reason !== "missed") {
-      tk.status = "cancelled";
-    } else if (missedNums.includes(tk.ticket) || tk.reason === "missed") {
-      tk.status = "missed";
-    } else if (tk.called) {
-      tk.status = "called";
-    } else {
-      tk.status = "waiting";
-    }
+    // Status e cálculos de tempo atuais
+    const now = Date.now();
+    tickets.forEach(tk => {
+      if (attendedNums.includes(tk.ticket)) {
+        tk.status = "attended";
+      } else if (cancelledNums.includes(tk.ticket) && tk.reason !== "missed") {
+        tk.status = "cancelled";
+      } else if (missedNums.includes(tk.ticket) || tk.reason === "missed") {
+        tk.status = "missed";
+      } else if (tk.called) {
+        tk.status = "called";
+      } else {
+        tk.status = "waiting";
+      }
 
-    if (tk.called && tk.entered) {
-      tk.wait = tk.called - tk.entered;
-    } else if (tk.cancelled && tk.entered && !tk.called) {
-      tk.wait = tk.cancelled - tk.entered;
-    } else if (tk.status === "waiting" && tk.entered) {
-      tk.wait = now - tk.entered;
-    }
+      if (tk.called && tk.entered) {
+        tk.wait = tk.called - tk.entered;
+      } else if (tk.cancelled && tk.entered && !tk.called) {
+        tk.wait = tk.cancelled - tk.entered;
+      } else if (tk.status === "waiting" && tk.entered) {
+        tk.wait = now - tk.entered;
+      }
 
-    if (tk.attended && tk.called) {
-      tk.duration = tk.attended - tk.called;
-    } else if (tk.status === "called" && tk.called) {
-      tk.duration = now - tk.called;
-    }
+      if (tk.attended && tk.called) {
+        tk.duration = tk.attended - tk.called;
+      } else if (tk.status === "called" && tk.called) {
+        tk.duration = now - tk.called;
+      }
 
-    tk.enteredBr = format(tk.entered);
-    tk.calledBr = format(tk.called);
-    tk.attendedBr = format(tk.attended);
-    tk.cancelledBr = format(tk.cancelled);
-    if (tk.wait) tk.waitHms = toHms(tk.wait);
-    if (tk.duration) tk.durationHms = toHms(tk.duration);
-  });
+      tk.enteredBr = format(tk.entered);
+      tk.calledBr = format(tk.called);
+      tk.attendedBr = format(tk.attended);
+      tk.cancelledBr = format(tk.cancelled);
+      if (tk.wait) tk.waitHms = toHms(tk.wait);
+      if (tk.duration) tk.durationHms = toHms(tk.duration);
+    });
 
-  // Contabiliza quantidades de forma robusta combinando logs e sets
-  const attendedTickets  = new Set([
-    ...attendedNums,
-    ...attended.map(a => a.ticket)
-  ]);
-  const cancelledTickets = new Set([
-    ...cancelledNums,
-    ...cancelled.filter(c => c.reason !== "missed").map(c => c.ticket)
-  ]);
-  const missedTickets    = new Set([
-    ...missedNums,
-    ...cancelled.filter(c => c.reason === "missed").map(c => c.ticket)
-  ]);
-  const attendedCount  = attendedTickets.size;
-  const cancelledCount = cancelledTickets.size;
-  const missedCount    = missedTickets.size;
-  const waitingCount   = tickets.filter(t => t.status === "waiting").length;
-  const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
-  const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
-  const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
-  const totalDur   = durValues.reduce((sum, v) => sum + v, 0);
-  const avgWait    = waitValues.length ? Math.round(totalWait / waitValues.length) : 0;
-  const avgDur     = durValues.length ? Math.round(totalDur / durValues.length) : 0;
-  const avgWaitHms = toHms(avgWait);
-  const avgDurHms  = toHms(avgDur);
+    // Contabiliza quantidades de forma robusta combinando logs e sets
+    const attendedTickets  = new Set([
+      ...attendedNums,
+      ...attended.map(a => a.ticket)
+    ]);
+    const cancelledTickets = new Set([
+      ...cancelledNums,
+      ...cancelled.filter(c => c.reason !== "missed").map(c => c.ticket)
+    ]);
+    const missedTickets    = new Set([
+      ...missedNums,
+      ...cancelled.filter(c => c.reason === "missed").map(c => c.ticket)
+    ]);
+    const attendedCount  = attendedTickets.size;
+    const cancelledCount = cancelledTickets.size;
+    const missedCount    = missedTickets.size;
+    const waitingCount   = tickets.filter(t => t.status === "waiting").length;
+    const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
+    const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
+    const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
+    const totalDur   = durValues.reduce((sum, v) => sum + v, 0);
+    const avgWait    = waitValues.length ? Math.round(totalWait / waitValues.length) : 0;
+    const avgDur     = durValues.length ? Math.round(totalDur / durValues.length) : 0;
+    const avgWaitHms = toHms(avgWait);
+    const avgDurHms  = toHms(avgDur);
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      tickets,
-      summary: {
-        totalTickets: ticketCounter,
-        attendedCount,
-        cancelledCount,
-        missedCount,
-        waitingCount,
-        avgWait,
-        avgDur,
-        avgWaitHms,
-        avgDurHms,
-      },
-    }),
-  };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        tickets,
+        summary: {
+          totalTickets: ticketCounter,
+          attendedCount,
+          cancelledCount,
+          missedCount,
+          waitingCount,
+          avgWait,
+          avgDur,
+          avgWaitHms,
+          avgDurHms,
+        },
+      }),
+    };
+  } catch (error) {
+    return errorHandler(error);
+  }
 }
