@@ -522,7 +522,11 @@ function startBouncingCompanyName(text) {
     if (!queueListEl) return;
     queueListEl.innerHTML = '';
     const pending = [];
-    for (let i = callCounter + 1; i <= ticketCounter; i++) {
+    // Se a chamada atual for maior que o contador sequencial, significa que
+    // houve um "fura-fila" manual. Nesse caso, incluímos também o número do
+    // contador atual na fila para que ele permaneça pendente.
+    const start = currentCallNum > callCounter ? callCounter : callCounter + 1;
+    for (let i = Math.max(1, start); i <= ticketCounter; i++) {
       if (i === currentCallNum) continue;
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       pending.push(i);
