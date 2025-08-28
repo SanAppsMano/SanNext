@@ -1,4 +1,5 @@
 // functions/validatePassword.js
+import './config.js';
 import { Redis } from '@upstash/redis';
 import bcrypt from 'bcryptjs';
 

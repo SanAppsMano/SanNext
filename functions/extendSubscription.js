@@ -1,4 +1,5 @@
 // functions/extendSubscription.js
+import './config.js';
 import { Redis } from '@upstash/redis';
 
 const redisExt = new Redis({

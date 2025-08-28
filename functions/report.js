@@ -1,3 +1,4 @@
+import './config.js';
 import { Redis } from "@upstash/redis";
 import errorHandler from "./utils/errorHandler.js";
 

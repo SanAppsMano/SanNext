@@ -19,6 +19,14 @@ Funções serverless e front-end para a fila virtual SuaVez.
 - Controle total sobre a participação: pode cancelar a qualquer momento ou silenciar alertas.
 - Atendimento mais ágil graças ao painel de gestão do atendente, reduzindo o tempo de espera.
 
+## Variáveis de Ambiente
+
+As funções exigem as seguintes variáveis de ambiente:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `FAUNA_SECRET`
+
 ## Reset de Monitor
 
 A função `deleteMonitorConfig` apaga o registro do monitor e **todas** as chaves `tenant:{token}:*` associadas no Redis.

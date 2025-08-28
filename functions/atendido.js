@@ -1,3 +1,4 @@
+import './config.js';
 import { Redis } from "@upstash/redis";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days

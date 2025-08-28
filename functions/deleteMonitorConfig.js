@@ -1,4 +1,5 @@
 // functions/deleteMonitorConfig.js
+import './config.js';
 
 import { Redis } from '@upstash/redis';
 
