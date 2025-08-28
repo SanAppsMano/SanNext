@@ -1,13 +1,13 @@
 // functions/getMonitorConfig.js
-const { Redis } = require('@upstash/redis');
-const bcrypt = require('bcryptjs');
+import { Redis } from '@upstash/redis';
+import bcrypt from 'bcryptjs';
 
 const redisClient = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN
 });
 
-exports.handler = async (event) => {
+export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
   }
@@ -74,4 +74,5 @@ exports.handler = async (event) => {
     statusCode: 200,
     body: JSON.stringify({ empresa: stored.empresa, schedule })
   };
-};
+}
+
