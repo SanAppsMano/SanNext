@@ -18,7 +18,8 @@ export async function handler(event) {
     return { statusCode: 404, body: "Invalid link" };
   }
   const prefix    = `tenant:${tenantId}:`;
-  const paramNum  = url.searchParams.get("num");
+  const paramNumStr = url.searchParams.get("num");
+  const hasParamNum = paramNumStr !== null;
   const identifier = url.searchParams.get("id") || "";
 
   const counterKey = prefix + "callCounter";
@@ -26,12 +27,17 @@ export async function handler(event) {
 
   // Próximo a chamar
   let next;
-  if (paramNum) {
-    next = Number(paramNum);
+  if (hasParamNum) {
+    next = Number(paramNumStr);
     // Não atualiza o contador sequencial para manter a ordem quando
     // um número é chamado manualmente
     await redis.srem(prefix + "cancelledSet", String(next));
     await redis.srem(prefix + "missedSet", String(next));
+    if (prevCall && prevCall !== next) {
+      // Garante que o ticket anterior permaneça na fila, limpando dados de chamada
+      await redis.del(prefix + `calledTime:${prevCall}`);
+      await redis.del(prefix + `wait:${prevCall}`);
+    }
   } else {
     next = await redis.incr(counterKey);
     const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
@@ -49,7 +55,7 @@ export async function handler(event) {
   // chamado perde a vez. Isso precisa ocorrer mesmo se o último ticket
   // tiver sido chamado manualmente, portanto consultamos o número
   // atualmente em atendimento (prevCall).
-  if (!paramNum && prevCall && prevCall !== next) {
+  if (!hasParamNum && prevCall && prevCall !== next) {
     const [isCancelled, isMissed, isAttended] = await Promise.all([
       redis.sismember(prefix + "cancelledSet", String(prevCall)),
       redis.sismember(prefix + "missedSet", String(prevCall)),
