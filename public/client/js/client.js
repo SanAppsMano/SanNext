@@ -238,11 +238,21 @@ async function checkStatus() {
   }
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
   if (!res) return;
-  const { calls = [], ticketCounter, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
+  const {
+    calls = [],
+    currentCall = 0,
+    attendant: lastAttendant = '',
+    timestamp: lastTimestamp = 0,
+    ticketCounter,
+    missedNumbers = [],
+    attendedNumbers = [],
+    names = {}
+  } = await res.json();
+  const allCalls = calls.length ? calls : (currentCall ? [{ ticket: currentCall, attendant: lastAttendant, ts: lastTimestamp }] : []);
   const myName = names[ticketNumber];
-  const highestCall = calls.reduce((m,c)=> Math.max(m, c.ticket), 0);
-  const myCall = calls.find(c => c.ticket === ticketNumber);
-  const last = calls[calls.length -1] || {};
+  const highestCall = allCalls.reduce((m,c)=> Math.max(m, c.ticket), 0);
+  const myCall = allCalls.find(c => c.ticket === ticketNumber);
+  const last = allCalls[allCalls.length -1] || {};
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");

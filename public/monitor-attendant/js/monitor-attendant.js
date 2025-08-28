@@ -515,7 +515,9 @@ function startBouncingCompanyName(text) {
   function updateCall(num, attendantId) {
     currentCallNum = num;
     currentCallEl.textContent = num > 0 ? num : '–';
-    currentIdEl.textContent   = attendantId || '';
+    currentIdEl.textContent = attendantId || '';
+    currentCalls = currentCalls.filter(c => c.attendant !== attendantId);
+    if (num) currentCalls.push({ ticket: num, attendant: attendantId, ts: Date.now() });
   }
 
   function updateQueueList() {
@@ -541,6 +543,9 @@ function startBouncingCompanyName(text) {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
       const {
         calls = [],
+        currentCall = 0,
+        attendant: lastAttendant = "",
+        timestamp: lastTs = 0,
         ticketCounter: tc,
         callCounter: cCtr = 0,
         cancelledNumbers = [],
@@ -563,9 +568,11 @@ function startBouncingCompanyName(text) {
       logoutVersion = srvLogoutVersion;
       localStorage.setItem('logoutVersion', String(logoutVersion));
 
-      currentCalls    = calls;
-      const last = calls[calls.length -1] || {};
-      currentCallNum  = last.ticket || 0;
+      const id = attendantInput.value.trim();
+      currentCalls = calls.length ? calls : (currentCall ? [{ ticket: currentCall, attendant: lastAttendant, ts: lastTs }] : []);
+      const myCall = currentCalls.find(c => c.attendant === id);
+      const last = currentCalls[currentCalls.length -1] || {};
+      currentCallNum = myCall ? myCall.ticket : (last.ticket || 0);
       ticketCounter   = tc;
       callCounter     = cCtr;
       ticketNames     = names || {};
@@ -579,7 +586,7 @@ function startBouncingCompanyName(text) {
       const cName = ticketNames[currentCallNum];
       currentCallEl.textContent = currentCallNum > 0 ? currentCallNum : '–';
       if (cName) currentCallEl.textContent += ` - ${cName}`;
-      currentIdEl.textContent   = last.attendant || '';
+      currentIdEl.textContent = myCall ? myCall.attendant : (last.attendant || '');
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;

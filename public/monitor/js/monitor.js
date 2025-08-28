@@ -98,12 +98,21 @@ async function fetchCurrent() {
   try {
     const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
     const res = await fetch(url);
-    const { calls = [], names = {} } = await res.json();
+    const {
+      calls = [],
+      currentCall = 0,
+      attendant: lastAttendant = '',
+      timestamp: lastTimestamp = 0,
+      names = {}
+    } = await res.json();
     const currentEl = document.getElementById('current');
     const nameEl = document.getElementById('current-name');
     const idEl   = document.getElementById('current-id');
     const container = document.querySelector('.container');
-    const newCalls = calls.filter(c => c.ts > lastTs).sort((a,b)=>a.ts - b.ts);
+    let newCalls = calls.filter(c => c.ts > lastTs).sort((a,b)=>a.ts - b.ts);
+    if (newCalls.length === 0 && currentCall && lastTimestamp > lastTs) {
+      newCalls = [{ ticket: currentCall, attendant: lastAttendant, ts: lastTimestamp }];
+    }
     for (const c of newCalls) {
       const name = names[c.ticket];
       currentEl.textContent = c.ticket;
@@ -122,7 +131,7 @@ async function fetchCurrent() {
       lastTs = c.ts;
       lastId = c.attendant;
     }
-    if (calls.length === 0) {
+    if (calls.length === 0 && !currentCall) {
       currentEl.textContent = '0';
       if (idEl) idEl.textContent = '';
       nameEl.textContent = '';
