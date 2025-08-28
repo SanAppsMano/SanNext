@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendedThumbsEl = document.getElementById('attended-thumbs');
   const attendedCountEl  = document.getElementById('attended-count');
   const queueListEl    = document.getElementById('queue-list');
+  const selectSound    = new Audio('/sounds/alert.mp3');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
   const btnAttended    = document.getElementById('btn-attended');
@@ -528,8 +529,26 @@ function startBouncingCompanyName(text) {
     }
     pending.forEach(n => {
       const li = document.createElement('li');
+      li.dataset.ticket = n;
       const nm = ticketNames[n];
       li.textContent = nm ? `${n} - ${nm}` : String(n);
+      li.addEventListener('click', async () => {
+        const ticket = li.dataset.ticket;
+        const id = attendantInput.value.trim();
+        let url = `/.netlify/functions/chamar?t=${token}&num=${ticket}`;
+        if (id) url += `&id=${encodeURIComponent(id)}`;
+        try {
+          const { called, attendant } = await (await fetch(url)).json();
+          updateCall(called, attendant);
+          refreshAll(token);
+          li.classList.add('selected');
+          selectSound.currentTime = 0;
+          selectSound.play().catch(() => {});
+          setTimeout(() => li.classList.remove('selected'), 600);
+        } catch (e) {
+          console.error(e);
+        }
+      });
       queueListEl.appendChild(li);
     });
   }

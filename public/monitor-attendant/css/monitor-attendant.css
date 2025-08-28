@@ -242,6 +242,19 @@ body {
   color: var(--primary);
   margin-bottom: 0.5rem;
 }
+#queue-list li {
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  transition: background 0.2s;
+}
+#queue-list li:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+#queue-list li.selected {
+  background: var(--secondary);
+  color: #fff;
+}
 .display {
   font-size: 1.5rem;
   margin-bottom: 0.75rem;
