@@ -238,8 +238,11 @@ async function checkStatus() {
   }
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
   if (!res) return;
-  const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
+  const { calls = [], ticketCounter, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
   const myName = names[ticketNumber];
+  const highestCall = calls.reduce((m,c)=> Math.max(m, c.ticket), 0);
+  const myCall = calls.find(c => c.ticket === ticketNumber);
+  const last = calls[calls.length -1] || {};
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
@@ -256,7 +259,7 @@ async function checkStatus() {
     return;
   }
 
-  if (currentCall > ticketNumber) {
+  if (highestCall > ticketNumber && !myCall) {
     const duration = callStartTs ? Date.now() - callStartTs : 0;
     const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
       method: "POST",
@@ -273,22 +276,22 @@ async function checkStatus() {
     return;
   }
 
-  if (currentCall !== ticketNumber) {
-    const cname = names[currentCall];
-    statusEl.textContent = cname ? `Chamando: ${currentCall} - ${cname} (${attendant})` : `Chamando: ${currentCall} (${attendant})`;
+  if (!myCall) {
+    const cname = names[last.ticket];
+    statusEl.textContent = last.ticket ? (cname ? `Chamando: ${last.ticket} - ${cname} (${last.attendant || ''})` : `Chamando: ${last.ticket} (${last.attendant || ''})`) : 'Aguardando chamada...';
     btnCancel.disabled = false;
     statusEl.classList.remove("blink");
     return;
   }
 
-  statusEl.textContent = `É a sua vez${myName ? ' - ' + myName : ''}! (Atendente: ${attendant})`;
+  statusEl.textContent = `É a sua vez${myName ? ' - ' + myName : ''}! (Atendente: ${myCall.attendant || ''})`;
   statusEl.classList.add("blink");
   btnCancel.disabled = true;
 
-  if (timestamp > lastEventTs) {
+  if (myCall.ts > lastEventTs) {
     silenced    = false;
-    lastEventTs = timestamp;
-    if (!callStartTs) callStartTs = timestamp;
+    lastEventTs = myCall.ts;
+    if (!callStartTs) callStartTs = myCall.ts;
     alertUser(myName);
   }
 }

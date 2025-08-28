@@ -10,9 +10,9 @@ if (empresa) {
   if (el) el.textContent = decodeURIComponent(empresa);
 }
 
-let lastCall = 0;
 let lastTs   = 0;
 let lastId   = '';
+let lastCall = 0;
 const alertSound   = document.getElementById('alert-sound');
 const unlockOverlay = document.getElementById('unlock-overlay');
 let wakeLock = null;
@@ -98,28 +98,34 @@ async function fetchCurrent() {
   try {
     const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
     const res = await fetch(url);
-    const { currentCall, names = {}, timestamp, attendant } = await res.json();
+    const { calls = [], names = {} } = await res.json();
     const currentEl = document.getElementById('current');
     const nameEl = document.getElementById('current-name');
     const idEl   = document.getElementById('current-id');
     const container = document.querySelector('.container');
-    const name = names[currentCall];
-    currentEl.textContent = currentCall;
-    if (name) {
-      currentEl.classList.add('manual');
-      nameEl.textContent = name;
-    } else {
-      currentEl.classList.remove('manual');
-      nameEl.textContent = '';
-    }
-    if (idEl) idEl.textContent = attendant || '';
-    if (currentCall && (currentCall !== lastCall || timestamp !== lastTs || attendant !== lastId)) {
-      alertUser(currentCall, name, attendant);
+    const newCalls = calls.filter(c => c.ts > lastTs).sort((a,b)=>a.ts - b.ts);
+    for (const c of newCalls) {
+      const name = names[c.ticket];
+      currentEl.textContent = c.ticket;
+      if (name) {
+        currentEl.classList.add('manual');
+        nameEl.textContent = name;
+      } else {
+        currentEl.classList.remove('manual');
+        nameEl.textContent = '';
+      }
+      if (idEl) idEl.textContent = c.attendant || '';
+      alertUser(c.ticket, name, c.attendant);
       container.classList.add('blink');
       setTimeout(() => container.classList.remove('blink'), 5000);
-      lastCall = currentCall;
-      lastTs = timestamp;
-      lastId = attendant;
+      lastCall = c.ticket;
+      lastTs = c.ts;
+      lastId = c.attendant;
+    }
+    if (calls.length === 0) {
+      currentEl.textContent = '0';
+      if (idEl) idEl.textContent = '';
+      nameEl.textContent = '';
     }
   } catch (e) {
     console.error('Erro ao buscar currentCall:', e);

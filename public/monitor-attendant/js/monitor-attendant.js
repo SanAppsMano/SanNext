@@ -351,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updatePdfBtnVisibility();
 
   let currentCallNum = 0; // último número chamado exibido
+  let currentCalls   = [];
   let ticketNames    = {};
   let ticketCounter  = 0;
   let callCounter    = 0;
@@ -539,10 +540,9 @@ function startBouncingCompanyName(text) {
     try {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
       const {
-        currentCall,
+        calls = [],
         ticketCounter: tc,
         callCounter: cCtr = 0,
-        attendant: attendantId = '',
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
@@ -563,7 +563,9 @@ function startBouncingCompanyName(text) {
       logoutVersion = srvLogoutVersion;
       localStorage.setItem('logoutVersion', String(logoutVersion));
 
-      currentCallNum  = currentCall;
+      currentCalls    = calls;
+      const last = calls[calls.length -1] || {};
+      currentCallNum  = last.ticket || 0;
       ticketCounter   = tc;
       callCounter     = cCtr;
       ticketNames     = names || {};
@@ -574,10 +576,10 @@ function startBouncingCompanyName(text) {
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
 
-      const cName = ticketNames[currentCall];
-      currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
+      const cName = ticketNames[currentCallNum];
+      currentCallEl.textContent = currentCallNum > 0 ? currentCallNum : '–';
       if (cName) currentCallEl.textContent += ` - ${cName}`;
-      currentIdEl.textContent   = attendantId || '';
+      currentIdEl.textContent   = last.attendant || '';
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
@@ -1060,11 +1062,11 @@ function startBouncingCompanyName(text) {
     });
 
     btnNext.onclick = async () => {
-      if (currentCallNum > 0 &&
-          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
+      const id = attendantInput.value.trim();
+      const hasCall = currentCalls.some(c => c.attendant === id);
+      if (hasCall && !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
         return;
       }
-      const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
@@ -1073,18 +1075,23 @@ function startBouncingCompanyName(text) {
     };
     btnRepeat.onclick = async () => {
       const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
+      const myCall = currentCalls.find(c => c.attendant === id);
+      const num = myCall ? myCall.ticket : currentCallNum;
+      let url = `/.netlify/functions/chamar?t=${t}&num=${num}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
       refreshAll(t);
     };
     btnAttended.onclick = async () => {
-      if (!currentCallNum) return;
+      const id = attendantInput.value.trim();
+      const myCall = currentCalls.find(c => c.attendant === id);
+      const num = myCall ? myCall.ticket : currentCallNum;
+      if (!num) return;
       await fetch(`/.netlify/functions/atendido?t=${t}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticket: currentCallNum })
+        body: JSON.stringify({ ticket: num })
       });
       refreshAll(t);
     };

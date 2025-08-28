@@ -40,21 +40,27 @@ export async function handler(event) {
     } catch {}
   }
 
-  const [callTsRaw, waitRaw] = await redis.mget(
-    prefix + "currentCallTs",
-    prefix + `wait:${ticket}`
+  const identifier = await redis.get(prefix + `identifier:${ticket}`) || "";
+  const [callTsRaw, waitRaw, tsById] = await redis.mget(
+    prefix + `calledTime:${ticket}`,
+    prefix + `wait:${ticket}`,
+    prefix + `currentCallTsById:${identifier}`
   );
-  const callTs  = Number(callTsRaw || 0);
+  const callTs  = Number(callTsRaw || tsById || 0);
   const duration = callTs ? Date.now() - callTs : 0;
   const wait     = Number(waitRaw || 0);
   await redis.del(prefix + `wait:${ticket}`);
 
-  // Limpa a chamada atual para evitar que o número seja marcado como perdido
-  await redis.mset({
-    [prefix + "currentCall"]: 0,
-    [prefix + "currentCallTs"]: 0,
-  });
-  await redis.del(prefix + "currentAttendant");
+  // Remove ticket da fila de chamadas e marca identificador como livre
+  if (identifier) {
+    await redis.lrem(prefix + "callQueue", 0, JSON.stringify({ ticket: Number(ticket), attendant: identifier, ts: Number(tsById || callTs) }));
+    const currentById = Number(await redis.get(prefix + `currentCallById:${identifier}`) || 0);
+    if (currentById === Number(ticket)) {
+      await redis.del(prefix + `currentCallById:${identifier}`);
+      await redis.del(prefix + `currentCallTsById:${identifier}`);
+    }
+  }
+  await redis.del(prefix + `identifier:${ticket}`);
 
   // registra a finalização do atendimento
   const ts = Date.now();

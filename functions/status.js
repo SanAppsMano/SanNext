@@ -17,20 +17,21 @@ export async function handler(event) {
   }
   const prefix = `tenant:${tenantId}:`;
 
-  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
-    await redis.mget(
-      prefix + "currentCall",
-      prefix + "callCounter",
-      prefix + "ticketCounter",
-      prefix + "currentAttendant",
-      prefix + "currentCallTs",
-      prefix + "logoutVersion"
-    );
-  const currentCall   = Number(currentCallRaw || 0);
+  const [callCounterRaw, ticketCounterRaw, logoutVersionRaw] = await redis.mget(
+    prefix + "callCounter",
+    prefix + "ticketCounter",
+    prefix + "logoutVersion"
+  );
   const callCounter   = Number(callCounterRaw || 0);
   const ticketCounter = Number(ticketCounterRaw || 0);
-  const attendant     = attendantRaw || "";
-  const timestamp     = Number(timestampRaw || 0);
+  const queueRaw = await redis.lrange(prefix + "callQueue", 0, -1);
+  const calls = queueRaw.map(item => {
+    try { return JSON.parse(item); } catch { return null; }
+  }).filter(Boolean);
+  const last = calls[calls.length - 1] || {};
+  const currentCall = Number(last.ticket || 0);
+  const attendant   = last.attendant || "";
+  const timestamp   = Number(last.ts || 0);
   const [cancelledSet, missedSet, attendedSet, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
@@ -48,6 +49,7 @@ export async function handler(event) {
   return {
     statusCode: 200,
     body: JSON.stringify({
+      calls,
       currentCall,
       callCounter,
       ticketCounter,
