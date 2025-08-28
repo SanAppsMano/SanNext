@@ -31,26 +31,29 @@ export async function handler(event) {
   if (hasParamNum) {
     next = Number(paramNumStr);
     joinTs = await redis.get(prefix + `ticketTime:${next}`);
-    // Não atualiza o contador sequencial para manter a ordem quando
-    // um número é chamado manualmente
+    // Ticket chamado manualmente: remove-o de cancelados/perdidos e mantém
+    // números menores pendentes na fila
     await redis.srem(prefix + "cancelledSet", String(next));
     await redis.srem(prefix + "missedSet", String(next));
-    const nextJoin = Number(joinTs || 0);
-    if (nextJoin) {
-      const missedArr = await redis.smembers(prefix + "missedSet");
-      for (const m of missedArr) {
-        if (Number(m) === next) continue;
-        const mJoin = Number(await redis.get(prefix + `ticketTime:${m}`) || 0);
-        if (mJoin && mJoin < nextJoin) {
-          await redis.srem(prefix + "missedSet", m);
-          await redis.del(prefix + `cancelledTime:${m}`);
-          await redis.del(prefix + `calledTime:${m}`);
-          await redis.del(prefix + `wait:${m}`);
-        }
+
+    const [missedArr, cancelledArr, attendedArr] = await Promise.all([
+      redis.smembers(prefix + "missedSet"),
+      redis.smembers(prefix + "cancelledSet"),
+      redis.smembers(prefix + "attendedSet"),
+    ]);
+    const cancelledSet = new Set(cancelledArr);
+    const attendedSet  = new Set(attendedArr);
+    for (const m of missedArr) {
+      const mNum = Number(m);
+      if (mNum < next && !cancelledSet.has(m) && !attendedSet.has(m)) {
+        await redis.srem(prefix + "missedSet", m);
+        await redis.del(prefix + `cancelledTime:${m}`);
+        await redis.del(prefix + `calledTime:${m}`);
+        await redis.del(prefix + `wait:${m}`);
       }
     }
     if (prevCall && prevCall !== next) {
-      // Garante que o ticket anterior permaneça na fila, limpando dados de chamada
+      // Limpa dados do ticket anteriormente em atendimento para mantê-lo pendente
       await redis.del(prefix + `calledTime:${prevCall}`);
       await redis.del(prefix + `wait:${prevCall}`);
     }
@@ -123,24 +126,6 @@ export async function handler(event) {
   );
   await redis.ltrim(prefix + "log:called", 0, 999);
   await redis.expire(prefix + "log:called", LOG_TTL);
-
-  // Se um número posterior é chamado manualmente, garanta que todos os
-  // tickets menores ainda pendentes permaneçam na fila removendo-os do
-  // conjunto de "perdeu a vez". Caso contrário, ao clicar numa senha
-  // mais alta, as anteriores poderiam ser marcadas como perdidas.
-  if (hasParamNum) {
-    const missedAfter = await redis.smembers(prefix + "missedSet");
-    const attendedSet = new Set(await redis.smembers(prefix + "attendedSet"));
-    for (const m of missedAfter) {
-      const mNum = Number(m);
-      if (mNum < next && !attendedSet.has(m)) {
-        await redis.srem(prefix + "missedSet", m);
-        await redis.del(prefix + `cancelledTime:${m}`);
-        await redis.del(prefix + `calledTime:${m}`);
-        await redis.del(prefix + `wait:${m}`);
-      }
-    }
-  }
 
   return {
     statusCode: 200,
