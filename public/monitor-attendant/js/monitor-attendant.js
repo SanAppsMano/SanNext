@@ -523,11 +523,8 @@ function startBouncingCompanyName(text) {
     if (!queueListEl) return;
     queueListEl.innerHTML = '';
     const pending = [];
-    // Se a chamada atual for maior que o contador sequencial, significa que
-    // houve um "fura-fila" manual. Nesse caso, incluímos também o número do
-    // contador atual na fila para que ele permaneça pendente.
-    const start = currentCallNum > callCounter ? callCounter : callCounter + 1;
-    for (let i = Math.max(1, start); i <= ticketCounter; i++) {
+    // Lista os tickets pendentes a partir do próximo número sequencial
+    for (let i = Math.max(1, callCounter + 1); i <= ticketCounter; i++) {
       if (i === currentCallNum) continue;
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       pending.push(i);
@@ -1090,10 +1087,9 @@ function startBouncingCompanyName(text) {
           !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
         return;
       }
-      const nextTicket = pendingQueue[0];
-      if (!nextTicket) return;
+      if (!pendingQueue.length) return;
       const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${t}&num=${nextTicket}`;
+      let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
