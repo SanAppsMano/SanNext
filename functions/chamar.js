@@ -124,6 +124,24 @@ export async function handler(event) {
   await redis.ltrim(prefix + "log:called", 0, 999);
   await redis.expire(prefix + "log:called", LOG_TTL);
 
+  // Se um número posterior é chamado manualmente, garanta que todos os
+  // tickets menores ainda pendentes permaneçam na fila removendo-os do
+  // conjunto de "perdeu a vez". Caso contrário, ao clicar numa senha
+  // mais alta, as anteriores poderiam ser marcadas como perdidas.
+  if (hasParamNum) {
+    const missedAfter = await redis.smembers(prefix + "missedSet");
+    const attendedSet = new Set(await redis.smembers(prefix + "attendedSet"));
+    for (const m of missedAfter) {
+      const mNum = Number(m);
+      if (mNum < next && !attendedSet.has(m)) {
+        await redis.srem(prefix + "missedSet", m);
+        await redis.del(prefix + `cancelledTime:${m}`);
+        await redis.del(prefix + `calledTime:${m}`);
+        await redis.del(prefix + `wait:${m}`);
+      }
+    }
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({ called: next, attendant: identifier, identifier, ts, wait, name }),
