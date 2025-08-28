@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { v4 as uuidv4 } from "uuid";
 import errorHandler from "./utils/errorHandler.js";
+import rateLimit from "./utils/rateLimit.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -19,6 +20,15 @@ export async function handler(event) {
     );
     if (!pwHash && !monitor) {
       return { statusCode: 404, body: "Invalid link" };
+    }
+    const ip =
+      event.headers["x-forwarded-for"]?.split(",")[0] ||
+      event.headers["client-ip"] ||
+      event.headers["x-real-ip"] ||
+      "";
+    const allowed = await rateLimit(redis, tenantId, ip);
+    if (!allowed) {
+      return { statusCode: 429, body: "Too Many Requests" };
     }
     const prefix = `tenant:${tenantId}:`;
 

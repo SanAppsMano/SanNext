@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import rateLimit from "./utils/rateLimit.js";
 
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
@@ -14,6 +15,15 @@ export async function handler(event) {
   );
   if (!pwHash && !monitor) {
     return { statusCode: 404, body: "Invalid link" };
+  }
+  const ip =
+    event.headers["x-forwarded-for"]?.split(",")[0] ||
+    event.headers["client-ip"] ||
+    event.headers["x-real-ip"] ||
+    "";
+  const allowed = await rateLimit(redis, tenantId, ip);
+  if (!allowed) {
+    return { statusCode: 429, body: "Too Many Requests" };
   }
   const prefix = `tenant:${tenantId}:`;
 
