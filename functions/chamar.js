@@ -24,15 +24,31 @@ export async function handler(event) {
 
   const counterKey = prefix + "callCounter";
   const prevCall   = Number(await redis.get(prefix + "currentCall") || 0);
+  let joinTs       = null;
 
   // Próximo a chamar
   let next;
   if (hasParamNum) {
     next = Number(paramNumStr);
+    joinTs = await redis.get(prefix + `ticketTime:${next}`);
     // Não atualiza o contador sequencial para manter a ordem quando
     // um número é chamado manualmente
     await redis.srem(prefix + "cancelledSet", String(next));
     await redis.srem(prefix + "missedSet", String(next));
+    const nextJoin = Number(joinTs || 0);
+    if (nextJoin) {
+      const missedArr = await redis.smembers(prefix + "missedSet");
+      for (const m of missedArr) {
+        if (Number(m) === next) continue;
+        const mJoin = Number(await redis.get(prefix + `ticketTime:${m}`) || 0);
+        if (mJoin && mJoin < nextJoin) {
+          await redis.srem(prefix + "missedSet", m);
+          await redis.del(prefix + `cancelledTime:${m}`);
+          await redis.del(prefix + `calledTime:${m}`);
+          await redis.del(prefix + `wait:${m}`);
+        }
+      }
+    }
     if (prevCall && prevCall !== next) {
       // Garante que o ticket anterior permaneça na fila, limpando dados de chamada
       await redis.del(prefix + `calledTime:${prevCall}`);
@@ -80,7 +96,7 @@ export async function handler(event) {
 
   const ts = Date.now();
   let wait = 0;
-  const joinTs = await redis.get(prefix + `ticketTime:${next}`);
+  if (!joinTs) joinTs = await redis.get(prefix + `ticketTime:${next}`);
   if (joinTs) {
     wait = ts - Number(joinTs);
     // mantém ticketTime registrado para o relatório
