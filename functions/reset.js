@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import scanDelete from "./utils/scanDelete.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -36,16 +37,11 @@ export async function handler(event) {
   await redis.del(prefix + "log:attended");
   await redis.del(prefix + "log:cancelled");
   await redis.del(prefix + "log:reset");
-  const keys = await redis.keys(prefix + "ticketTime:*");
-  for (const k of keys) await redis.del(k);
-  const calledKeys = await redis.keys(prefix + "calledTime:*");
-  for (const k of calledKeys) await redis.del(k);
-  const attendedKeys = await redis.keys(prefix + "attendedTime:*");
-  for (const k of attendedKeys) await redis.del(k);
-  const cancelledKeys = await redis.keys(prefix + "cancelledTime:*");
-  for (const k of cancelledKeys) await redis.del(k);
-  const waitKeys = await redis.keys(prefix + "wait:*");
-  for (const w of waitKeys) await redis.del(w);
+  await scanDelete(redis, prefix + "ticketTime:*");
+  await scanDelete(redis, prefix + "calledTime:*");
+  await scanDelete(redis, prefix + "attendedTime:*");
+  await scanDelete(redis, prefix + "cancelledTime:*");
+  await scanDelete(redis, prefix + "wait:*");
 
   // Log de reset
   await redis.lpush(
