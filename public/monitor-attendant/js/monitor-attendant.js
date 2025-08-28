@@ -523,8 +523,9 @@ function startBouncingCompanyName(text) {
     if (!queueListEl) return;
     queueListEl.innerHTML = '';
     const pending = [];
-    // Lista os tickets pendentes a partir do próximo número sequencial
-    for (let i = Math.max(1, callCounter + 1); i <= ticketCounter; i++) {
+    // Lista todos os tickets ainda pendentes, preservando os menores
+    // números quando um ticket posterior é chamado manualmente
+    for (let i = 1; i <= ticketCounter; i++) {
       if (i === currentCallNum) continue;
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       pending.push(i);
