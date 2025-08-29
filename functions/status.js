@@ -61,7 +61,7 @@ export async function handler(event) {
   const ticketCounter = Number(ticketCounterRaw || 0);
   const attendant     = attendantRaw || "";
   const timestamp     = Number(timestampRaw || 0);
-  const [cancelledSet, missedSet, attendedSet, skippedSet, offHoursSet, nameMap] = await Promise.all([
+  const [cancelledList, missedList, attendedList, skippedList, offHoursList, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
     redis.smembers(prefix + "attendedSet"),
@@ -69,13 +69,14 @@ export async function handler(event) {
     redis.smembers(prefix + "offHoursSet"),
     redis.hgetall(prefix + "ticketNames")
   ]);
-  const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
-  const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
-  const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
-  const offHoursNums  = offHoursSet.map(n => Number(n)).sort((a, b) => a - b);
+
+  const cancelledNums = cancelledList.map(n => Number(n)).sort((a, b) => a - b);
+  const missedNums    = missedList.map(n => Number(n)).sort((a, b) => a - b);
+  const attendedNums  = attendedList.map(n => Number(n)).sort((a, b) => a - b);
+  const offHoursNums  = offHoursList.map(n => Number(n)).sort((a, b) => a - b);
 
   // Remove números pulados que correspondem a tickets reais
-  let skippedNums     = skippedSet.map(n => Number(n)).sort((a, b) => a - b);
+  let skippedNums     = skippedList.map(n => Number(n)).sort((a, b) => a - b);
   if (skippedNums.length) {
     const keys   = skippedNums.map(n => prefix + `ticketTime:${n}`);
     const exists = await redis.mget(...keys);
