@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentCallEl  = document.getElementById('current-call');
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
+  const offHoursCountEl= document.getElementById('offhours-count');
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
@@ -370,10 +371,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let cancelledNums  = [];
   let missedNums     = [];
   let skippedNums    = [];
+  let offHoursNums   = [];
   let cancelledCount = 0;
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let offHoursCount  = 0;
   let pollingId;
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
@@ -538,7 +541,13 @@ function startBouncingCompanyName(text) {
     const pending = [];
     for (let i = callCounter + 1; i <= ticketCounter; i++) {
       if (i === currentCallNum) continue;
-      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i) || skippedNums.includes(i)) continue;
+      if (
+        cancelledNums.includes(i) ||
+        missedNums.includes(i) ||
+        attendedNums.includes(i) ||
+        skippedNums.includes(i) ||
+        offHoursNums.includes(i)
+      ) continue;
       pending.push(i);
     }
     pending.forEach(n => {
@@ -572,9 +581,11 @@ function startBouncingCompanyName(text) {
         missedNumbers = [],
         attendedNumbers = [],
         skippedNumbers = [],
+        offHoursNumbers = [],
         cancelledCount: cc = 0,
         missedCount: mc = 0,
         attendedCount: ac = 0,
+        offHoursCount: ohc = 0,
         waiting = 0,
         names = {},
         logoutVersion: srvLogoutVersion = 0
@@ -597,15 +608,18 @@ function startBouncingCompanyName(text) {
       missedNums      = missedNumbers.map(Number);
       attendedNums    = attendedNumbers.map(Number);
       skippedNums     = skippedNumbers.map(Number);
+      offHoursNums    = offHoursNumbers.map(Number);
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
+      offHoursCount   = ohc;
 
       const cName = ticketNames[currentCall];
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       if (cName) currentCallEl.textContent += ` - ${cName}`;
       currentIdEl.textContent   = attendantId || '';
       waitingEl.textContent     = waiting;
+      if (offHoursCountEl) offHoursCountEl.textContent = offHoursCount;
 
       cancelCountEl.textContent = cancelledCount;
       cancelThumbsEl.innerHTML  = '';
@@ -732,14 +746,16 @@ function startBouncingCompanyName(text) {
       avgWait = 0,
       avgDur = 0,
       avgWaitHms = '00:00:00',
-      avgDurHms = '00:00:00'
+      avgDurHms = '00:00:00',
+      offHoursCount: offHoursReport = 0
     } = summary;
 
     const attendedCount  = Number(attendedCountEl.textContent) || 0;
     const cancelledCount = Number(cancelCountEl.textContent) || 0;
     const missedCount    = Number(missedCountEl.textContent) || 0;
     const waitingCount   = Number(waitingEl.textContent) || 0;
-    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount;
+    const offHoursCount  = Number(offHoursCountEl?.textContent) || 0;
+    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount + offHoursCount;
 
     if (!tickets.length &&
         !totalTickets &&
@@ -747,7 +763,8 @@ function startBouncingCompanyName(text) {
         !cancelledCount &&
         !missedCount &&
         !waitingCount &&
-        !calledCount) {
+        !calledCount &&
+        !offHoursCount) {
       reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
     } else {
       reportSummary.innerHTML = `
@@ -758,7 +775,8 @@ function startBouncingCompanyName(text) {
         <p>Cancelados: ${cancelledCount}</p>
         <p>Perderam a vez: ${missedCount}</p>
         <p>Chamados: ${calledCount}</p>
-        <p>Em espera: ${waitingCount}</p>`;
+        <p>Em espera: ${waitingCount}</p>
+        <p>Fora do horário: ${offHoursCount}</p>`;
     }
 
     // Monta tabela
@@ -785,7 +803,8 @@ function startBouncingCompanyName(text) {
       cancelled: 'Cancelado',
       missed: 'Perdeu a vez',
       called: 'Chamado',
-      waiting: 'Em espera'
+      waiting: 'Em espera',
+      offhours: 'Fora do horário'
     })[st] || '';
     tickets.forEach(tk => {
       const tr = document.createElement('tr');

@@ -23,6 +23,9 @@ export async function handler(event) {
   // Recupera e remove ticket do cliente
   const ticketNum = await redis.get(prefix + `ticket:${clientId}`);
   await redis.del(prefix + `ticket:${clientId}`);
+  if (ticketNum) {
+    await redis.srem(prefix + "offHoursSet", String(ticketNum));
+  }
 
   let wait = 0;
   if (ticketNum) {

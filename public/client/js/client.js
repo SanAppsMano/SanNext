@@ -296,7 +296,7 @@ async function checkStatus() {
 async function verifyTicket() {
   if (!ticketNumber) return;
   await fetchSchedule();
-  const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
+  const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}&tk=${ticketNumber}`);
   if (!res) {
     schedulePolling();
     return;

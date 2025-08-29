@@ -13,14 +13,41 @@ export async function handler(event) {
     }
 
     const redis  = Redis.fromEnv();
-    const [pwHash, monitor] = await redis.mget(
+    const [pwHash, monitor, schedRaw] = await redis.mget(
       `tenant:${tenantId}:pwHash`,
-      `monitor:${tenantId}`
+      `monitor:${tenantId}`,
+      `tenant:${tenantId}:schedule`
     );
     if (!pwHash && !monitor) {
       return { statusCode: 404, body: "Invalid link" };
     }
     const prefix = `tenant:${tenantId}:`;
+
+    let schedule = null;
+    if (schedRaw) {
+      try {
+        schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw;
+      } catch {}
+    } else if (monitor) {
+      try {
+        const parsed = JSON.parse(monitor);
+        schedule = parsed.schedule || null;
+      } catch {}
+    }
+
+    const withinSchedule = (sched) => {
+      if (!sched) return true;
+      const now = new Date();
+      const day = now.getDay();
+      if (!sched.days || !sched.days.includes(day)) return false;
+      if (!sched.intervals || sched.intervals.length === 0) return true;
+      const mins = now.getHours() * 60 + now.getMinutes();
+      const toMins = (t) => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      };
+      return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
+    };
 
     // Cria clientId e incrementa contador de tickets
     const clientId     = uuidv4();
@@ -30,6 +57,10 @@ export async function handler(event) {
       [prefix + `ticket:${clientId}`]: ticketNumber,
       [prefix + `ticketTime:${ticketNumber}`]: Date.now(),
     });
+
+    if (!withinSchedule(schedule)) {
+      await redis.sadd(prefix + "offHoursSet", String(ticketNumber));
+    }
 
     // Log de entrada
     const ts = Date.now();

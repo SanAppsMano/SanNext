@@ -17,6 +17,36 @@ export async function handler(event) {
   }
   const prefix = `tenant:${tenantId}:`;
 
+  const ticketParam = url.searchParams.get("tk");
+  if (ticketParam) {
+    const tNum = Number(ticketParam);
+    if (await redis.sismember(prefix + "offHoursSet", String(tNum))) {
+      const [schedRaw, monitorRaw] = await redis.mget(
+        prefix + "schedule",
+        `monitor:${tenantId}`
+      );
+      let schedule = null;
+      if (schedRaw) {
+        try { schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw; } catch {}
+      } else if (monitorRaw) {
+        try { schedule = JSON.parse(monitorRaw).schedule || null; } catch {}
+      }
+      const withinSchedule = (sched) => {
+        if (!sched) return true;
+        const now = new Date();
+        const day = now.getDay();
+        if (!sched.days || !sched.days.includes(day)) return false;
+        if (!sched.intervals || sched.intervals.length === 0) return true;
+        const mins = now.getHours() * 60 + now.getMinutes();
+        const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+        return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
+      };
+      if (withinSchedule(schedule)) {
+        await redis.srem(prefix + "offHoursSet", String(tNum));
+      }
+    }
+  }
+
   const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
     await redis.mget(
       prefix + "currentCall",
@@ -31,16 +61,18 @@ export async function handler(event) {
   const ticketCounter = Number(ticketCounterRaw || 0);
   const attendant     = attendantRaw || "";
   const timestamp     = Number(timestampRaw || 0);
-  const [cancelledSet, missedSet, attendedSet, skippedSet, nameMap] = await Promise.all([
+  const [cancelledSet, missedSet, attendedSet, skippedSet, offHoursSet, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
     redis.smembers(prefix + "attendedSet"),
     redis.smembers(prefix + "skippedSet"),
+    redis.smembers(prefix + "offHoursSet"),
     redis.hgetall(prefix + "ticketNames")
   ]);
   const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
   const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
+  const offHoursNums  = offHoursSet.map(n => Number(n)).sort((a, b) => a - b);
 
   // Remove números pulados que correspondem a tickets reais
   let skippedNums     = skippedSet.map(n => Number(n)).sort((a, b) => a - b);
@@ -61,14 +93,16 @@ export async function handler(event) {
   const missedCount    = missedNums.length;
   const attendedCount  = attendedNums.length;
   const skippedCount   = skippedNums.length;
+  const offHoursCount  = offHoursNums.length;
 
   const cancelledAfter = cancelledNums.filter(n => n > callCounter);
   const missedAfter    = missedNums.filter(n => n > callCounter);
   const attendedAfter  = attendedNums.filter(n => n > callCounter);
   const skippedAfter   = skippedNums.filter(n => n > callCounter);
+  const offHoursAfter  = offHoursNums.filter(n => n > callCounter);
 
   let waiting = ticketCounter - callCounter -
-    cancelledAfter.length - missedAfter.length - attendedAfter.length - skippedAfter.length;
+    cancelledAfter.length - missedAfter.length - attendedAfter.length - skippedAfter.length - offHoursAfter.length;
   if (currentCall > callCounter) waiting -= 1;
   waiting = Math.max(0, waiting);
 
@@ -87,6 +121,8 @@ export async function handler(event) {
       attendedNumbers: attendedNums,
       attendedCount,
       skippedNumbers: skippedNums,
+      offHoursNumbers: offHoursNums,
+      offHoursCount,
       waiting,
       names: nameMap || {},
       logoutVersion: Number(logoutVersionRaw || 0),

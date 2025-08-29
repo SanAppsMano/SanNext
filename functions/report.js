@@ -28,6 +28,7 @@ export async function handler(event) {
       redis.smembers(prefix + "missedSet"),
       redis.smembers(prefix + "attendedSet"),
       redis.hgetall(prefix + "ticketNames"),
+      redis.smembers(prefix + "offHoursSet"),
     ]);
 
     const [
@@ -39,6 +40,7 @@ export async function handler(event) {
       missedSet,
       attendedSet,
       nameMap,
+      offHoursSet,
     ] = data;
 
   const safeParse = (val) => {
@@ -58,6 +60,7 @@ export async function handler(event) {
   const cancelledNums = cancelledSet.map(n => Number(n));
   const missedNums    = missedSet.map(n => Number(n));
   const attendedNums  = attendedSet.map(n => Number(n));
+  const offHoursNums  = offHoursSet.map(n => Number(n));
 
   const ticketNumbers = new Set([
     ...entered.map(e => e.ticket),
@@ -67,7 +70,8 @@ export async function handler(event) {
     ...cancelledNums,
     ...missedNums,
     ...attendedNums,
-    ...(nameMap ? Object.keys(nameMap).map(Number) : [])
+    ...(nameMap ? Object.keys(nameMap).map(Number) : []),
+    ...offHoursNums
   ]);
   const nums = Array.from(ticketNumbers).sort((a, b) => a - b);
 
@@ -168,7 +172,9 @@ export async function handler(event) {
     // Status e cálculos de tempo atuais
     const now = Date.now();
     tickets.forEach(tk => {
-      if (attendedNums.includes(tk.ticket)) {
+      if (offHoursNums.includes(tk.ticket)) {
+        tk.status = "offhours";
+      } else if (attendedNums.includes(tk.ticket)) {
         tk.status = "attended";
       } else if (cancelledNums.includes(tk.ticket) && tk.reason !== "missed") {
         tk.status = "cancelled";
@@ -202,7 +208,7 @@ export async function handler(event) {
       if (tk.duration) tk.durationHms = toHms(tk.duration);
     });
 
-    const counts = { waiting: 0, called: 0, attended: 0, cancelled: 0, missed: 0 };
+    const counts = { waiting: 0, called: 0, attended: 0, cancelled: 0, missed: 0, offhours: 0 };
     tickets.forEach(t => {
       if (counts[t.status] !== undefined) counts[t.status] += 1;
     });
@@ -211,7 +217,8 @@ export async function handler(event) {
     const missedCount    = counts.missed;
     const waitingCount   = counts.waiting;
     const calledCount    = counts.called;
-    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount;
+    const offHoursCount  = counts.offhours;
+    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount + offHoursCount;
 
     const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
     const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
@@ -233,6 +240,7 @@ export async function handler(event) {
           missedCount,
           calledCount,
           waitingCount,
+          offHoursCount,
           avgWait,
           avgDur,
           avgWaitHms,

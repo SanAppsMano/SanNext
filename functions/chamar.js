@@ -35,15 +35,17 @@ export async function handler(event) {
       await redis.srem(prefix + "cancelledSet", String(next));
       await redis.srem(prefix + "missedSet", String(next));
       await redis.srem(prefix + "skippedSet", String(next));
+      await redis.srem(prefix + "offHoursSet", String(next));
     } else {
       next = await redis.incr(counterKey);
       const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
-      // Se automático, pular tickets cancelados, perdidos ou pulados sem removê-los
+      // Se automático, pular tickets cancelados, perdidos, fora do horário ou pulados sem removê-los
       while (
         next <= ticketCount &&
         ((await redis.sismember(prefix + "cancelledSet", String(next))) ||
          (await redis.sismember(prefix + "missedSet", String(next))) ||
-         (await redis.sismember(prefix + "skippedSet", String(next))))
+         (await redis.sismember(prefix + "skippedSet", String(next))) ||
+         (await redis.sismember(prefix + "offHoursSet", String(next))))
       ) {
         next = await redis.incr(counterKey);
       }
