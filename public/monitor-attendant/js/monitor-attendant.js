@@ -191,6 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordCurrent= document.getElementById('password-current');
   const passwordNew    = document.getElementById('password-new');
   const passwordError  = document.getElementById('password-error');
+  const togglePwCurrent= document.getElementById('toggle-password-current');
+  const togglePwNew    = document.getElementById('toggle-password-new');
   const cloneListEl    = document.getElementById('clone-list');
   const clonesPanel    = document.querySelector('.clones-panel');
 
@@ -280,8 +282,22 @@ document.addEventListener('DOMContentLoaded', () => {
   btnChangePw.onclick = () => {
     passwordError.textContent = '';
     passwordCurrent.value = '';
+    passwordCurrent.type = 'password';
+    togglePwCurrent.textContent = '👁️';
     passwordNew.value = '';
+    passwordNew.type = 'password';
+    togglePwNew.textContent = '👁️';
     passwordModal.hidden = false;
+  };
+  togglePwCurrent.onclick = () => {
+    const isPassword = passwordCurrent.type === 'password';
+    passwordCurrent.type = isPassword ? 'text' : 'password';
+    togglePwCurrent.textContent = isPassword ? '🙈' : '👁️';
+  };
+  togglePwNew.onclick = () => {
+    const isPassword = passwordNew.type === 'password';
+    passwordNew.type = isPassword ? 'text' : 'password';
+    togglePwNew.textContent = isPassword ? '🙈' : '👁️';
   };
   passwordClose.onclick = () => { passwordModal.hidden = true; };
   passwordSave.onclick = async () => {

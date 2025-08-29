@@ -640,12 +640,25 @@ body {
   font-size: 1.25rem;
   cursor: pointer;
 }
-#password-modal input {
+#password-modal .password-wrapper {
+  position: relative;
+  margin: 0.5rem 0;
+}
+#password-modal .password-wrapper input {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: var(--radius);
-  margin: 0.5rem 0;
+  padding-right: 2.5rem;
+}
+#password-modal .toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 #password-modal button {
   width: 100%;
