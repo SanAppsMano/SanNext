@@ -70,10 +70,38 @@ export async function handler(event) {
     redis.hgetall(prefix + "ticketNames")
   ]);
 
+  let offHoursNums  = offHoursList.map(n => Number(n)).sort((a, b) => a - b);
+  if (offHoursList.length) {
+    const [schedRaw, monitorRaw] = await redis.mget(
+      prefix + "schedule",
+      `monitor:${tenantId}`
+    );
+    let schedule = null;
+    if (schedRaw) {
+      try { schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw; } catch {}
+    } else if (monitorRaw) {
+      try { schedule = JSON.parse(monitorRaw).schedule || null; } catch {}
+    }
+    const withinSchedule = (sched) => {
+      if (!sched) return true;
+      const now = new Date();
+      const day = now.getDay();
+      if (!sched.days || !sched.days.includes(day)) return false;
+      if (!sched.intervals || sched.intervals.length === 0) return true;
+      const mins = now.getHours() * 60 + now.getMinutes();
+      const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
+    };
+    if (withinSchedule(schedule)) {
+      await redis.srem(prefix + "offHoursSet", ...offHoursList);
+      offHoursList = [];
+      offHoursNums = [];
+    }
+  }
+
   const cancelledNums = cancelledList.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedList.map(n => Number(n)).sort((a, b) => a - b);
   const attendedNums  = attendedList.map(n => Number(n)).sort((a, b) => a - b);
-  const offHoursNums  = offHoursList.map(n => Number(n)).sort((a, b) => a - b);
 
   // Remove números pulados que correspondem a tickets reais
   let skippedNums     = skippedList.map(n => Number(n)).sort((a, b) => a - b);

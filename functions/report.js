@@ -60,7 +60,34 @@ export async function handler(event) {
   const cancelledNums = cancelledSet.map(n => Number(n));
   const missedNums    = missedSet.map(n => Number(n));
   const attendedNums  = attendedSet.map(n => Number(n));
-  const offHoursNums  = offHoursSet.map(n => Number(n));
+  let offHoursNums    = offHoursSet.map(n => Number(n));
+  if (offHoursSet.length) {
+    const [schedRaw, monitorRaw] = await redis.mget(
+      prefix + "schedule",
+      `monitor:${tenantId}`
+    );
+    let schedule = null;
+    if (schedRaw) {
+      try { schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw; } catch {}
+    } else if (monitorRaw) {
+      try { schedule = JSON.parse(monitorRaw).schedule || null; } catch {}
+    }
+    const withinSchedule = (sched) => {
+      if (!sched) return true;
+      const now = new Date();
+      const day = now.getDay();
+      if (!sched.days || !sched.days.includes(day)) return false;
+      if (!sched.intervals || sched.intervals.length === 0) return true;
+      const mins = now.getHours() * 60 + now.getMinutes();
+      const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
+    };
+    if (withinSchedule(schedule)) {
+      await redis.srem(prefix + "offHoursSet", ...offHoursSet);
+      offHoursSet = [];
+      offHoursNums = [];
+    }
+  }
 
   const ticketNumbers = new Set([
     ...entered.map(e => e.ticket),

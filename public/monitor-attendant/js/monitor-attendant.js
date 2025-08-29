@@ -133,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentCallEl  = document.getElementById('current-call');
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
-  const offHoursCountEl= document.getElementById('offhours-count');
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
@@ -376,7 +375,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
-  let offHoursCount  = 0;
   let pollingId;
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
@@ -545,15 +543,16 @@ function startBouncingCompanyName(text) {
         cancelledNums.includes(i) ||
         missedNums.includes(i) ||
         attendedNums.includes(i) ||
-        skippedNums.includes(i) ||
-        offHoursNums.includes(i)
+        skippedNums.includes(i)
       ) continue;
       pending.push(i);
     }
     pending.forEach(n => {
       const li = document.createElement('li');
       const nm = ticketNames[n];
-      li.textContent = nm ? `${n} - ${nm}` : String(n);
+      let text = nm ? `${n} - ${nm}` : String(n);
+      if (offHoursNums.includes(n)) text += ' - Fora do horário';
+      li.textContent = text;
       queueListEl.appendChild(li);
     });
   }
@@ -585,7 +584,6 @@ function startBouncingCompanyName(text) {
         cancelledCount: cc = 0,
         missedCount: mc = 0,
         attendedCount: ac = 0,
-        offHoursCount: ohc = 0,
         waiting = 0,
         names = {},
         logoutVersion: srvLogoutVersion = 0
@@ -612,14 +610,12 @@ function startBouncingCompanyName(text) {
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
-      offHoursCount   = ohc || offHoursNums.length;
 
       const cName = ticketNames[currentCall];
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       if (cName) currentCallEl.textContent += ` - ${cName}`;
       currentIdEl.textContent   = attendantId || '';
       waitingEl.textContent     = waiting;
-      if (offHoursCountEl) offHoursCountEl.textContent = offHoursCount;
 
       cancelCountEl.textContent = cancelledCount;
       cancelThumbsEl.innerHTML  = '';
@@ -754,8 +750,7 @@ function startBouncingCompanyName(text) {
     const cancelledCount = Number(cancelCountEl.textContent) || 0;
     const missedCount    = Number(missedCountEl.textContent) || 0;
     const waitingCount   = Number(waitingEl.textContent) || 0;
-    const offHoursCount  = Number(offHoursCountEl?.textContent) || 0;
-    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount + offHoursCount;
+    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount + offHoursReport;
 
     if (!tickets.length &&
         !totalTickets &&
@@ -763,8 +758,7 @@ function startBouncingCompanyName(text) {
         !cancelledCount &&
         !missedCount &&
         !waitingCount &&
-        !calledCount &&
-        !offHoursCount) {
+        !calledCount) {
       reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
     } else {
       reportSummary.innerHTML = `
@@ -775,8 +769,7 @@ function startBouncingCompanyName(text) {
         <p>Cancelados: ${cancelledCount}</p>
         <p>Perderam a vez: ${missedCount}</p>
         <p>Chamados: ${calledCount}</p>
-        <p>Em espera: ${waitingCount}</p>
-        <p>Fora do horário: ${offHoursCount}</p>`;
+        <p>Em espera: ${waitingCount}</p>`;
     }
 
     // Monta tabela
