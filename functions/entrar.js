@@ -37,9 +37,10 @@ export async function handler(event) {
 
     const withinSchedule = (sched) => {
       if (!sched) return true;
-      const now = new Date();
-      const day = now.getDay();
-      if (!sched.days || !sched.days.includes(day)) return false;
+      const now  = new Date();
+      const day  = now.getDay();
+      const days = (sched.days || []).map(Number);
+      if (!days.includes(day)) return false;
       if (!sched.intervals || sched.intervals.length === 0) return true;
       const mins = now.getHours() * 60 + now.getMinutes();
       const toMins = (t) => {

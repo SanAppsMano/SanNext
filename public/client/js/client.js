@@ -74,9 +74,10 @@ async function fetchSchedule() {
 
 function withinSchedule() {
   if (!schedule) return false;
-  const now = new Date();
-  const day = now.getDay();
-  if (!schedule.days || !schedule.days.includes(day)) return false;
+  const now  = new Date();
+  const day  = now.getDay();
+  const days = (schedule.days || []).map(Number);
+  if (!days.includes(day)) return false;
   // Sem intervalos marcados: dia inteiro liberado
   if (!schedule.intervals || schedule.intervals.length === 0) return true;
   const mins = now.getHours() * 60 + now.getMinutes();
