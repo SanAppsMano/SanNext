@@ -649,6 +649,8 @@ body {
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: var(--radius);
+}
+#password-modal .password-wrapper.with-toggle input {
   padding-right: 2.5rem;
 }
 #password-modal .toggle-password {
