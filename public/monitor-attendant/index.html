@@ -245,8 +245,13 @@
     <div class="modal-content">
       <span id="password-close" class="close">&times;</span>
       <h2>Trocar Senha</h2>
-      <input id="password-current" type="password" placeholder="Senha Atual" />
-      <input id="password-new" type="password" placeholder="Nova Senha" />
+      <div class="password-wrapper with-toggle">
+        <input id="password-current" type="password" placeholder="Senha Atual" readonly />
+        <button type="button" id="toggle-password-current" class="toggle-password">👁️</button>
+      </div>
+      <div class="password-wrapper">
+        <input id="password-new" type="text" placeholder="Nova Senha" />
+      </div>
       <button id="password-save">Salvar</button>
       <div id="password-error" class="error"></div>
     </div>
