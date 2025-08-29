@@ -206,13 +206,14 @@ btnStart.addEventListener("click", async () => {
   btnJoin.hidden = true;
   btnCancel.hidden = false;
   btnCancel.disabled = false;
-  await getTicket();
   await fetchSchedule();
+  await getTicket();
   schedulePolling();
 });
 
 async function getTicket() {
-  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  const off = withinSchedule() ? 0 : 1;
+  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}&off=${off}`);
   if (!res) return;
   const data = await res.json();
   clientId     = data.clientId;
