@@ -24,7 +24,6 @@ export async function handler(event) {
       redis.lrange(prefix + "log:called", 0, -1),
       redis.lrange(prefix + "log:attended", 0, -1),
       redis.lrange(prefix + "log:cancelled", 0, -1),
-      redis.get(prefix + "ticketCounter"),
       redis.smembers(prefix + "cancelledSet"),
       redis.smembers(prefix + "missedSet"),
       redis.smembers(prefix + "attendedSet"),
@@ -36,7 +35,6 @@ export async function handler(event) {
       calledRaw,
       attendedRaw,
       cancelledRaw,
-      ticketCounterRaw,
       cancelledSet,
       missedSet,
       attendedSet,
@@ -61,23 +59,22 @@ export async function handler(event) {
   const missedNums    = missedSet.map((n) => Number(n));
   const attendedNums  = attendedSet.map((n) => Number(n));
 
-  // Determina o maior número de ticket considerando logs e sets
-  const maxFromLogs = Math.max(
-    0,
+  const ticketNumbers = new Set([
     ...entered.map(e => e.ticket),
     ...called.map(c => c.ticket),
     ...attended.map(a => a.ticket),
     ...cancelled.map(c => c.ticket),
     ...cancelledNums,
     ...missedNums,
-    ...attendedNums
-  );
-  const ticketCounter = Math.max(Number(ticketCounterRaw || 0), maxFromLogs);
+    ...attendedNums,
+    ...(nameMap ? Object.keys(nameMap).map(Number) : [])
+  ]);
+  const nums = Array.from(ticketNumbers).sort((a, b) => a - b);
 
   const map = {};
-  for (let i = 1; i <= ticketCounter; i++) {
-    map[i] = { ticket: i };
-  }
+  nums.forEach((n) => {
+    map[n] = { ticket: n };
+  });
 
   if (nameMap) {
     Object.entries(nameMap).forEach(([num, n]) => {
@@ -88,29 +85,25 @@ export async function handler(event) {
 
   // Busca timestamps individuais utilizando mget para evitar muitos acessos
   async function loadTimes(prefixKey) {
-    const keys = [];
-    for (let i = 1; i <= ticketCounter; i++) {
-      keys.push(prefix + `${prefixKey}:${i}`);
-    }
+    if (!nums.length) return {};
+    const keys = nums.map((i) => prefix + `${prefixKey}:${i}`);
     const values = await redis.mget(...keys);
     const result = {};
     values.forEach((val, idx) => {
       if (val !== null && val !== undefined) {
-        result[idx + 1] = Number(val);
+        result[nums[idx]] = Number(val);
       }
     });
     return result;
   }
   async function loadStrings(prefixKey) {
-    const keys = [];
-    for (let i = 1; i <= ticketCounter; i++) {
-      keys.push(prefix + `${prefixKey}:${i}`);
-    }
+    if (!nums.length) return {};
+    const keys = nums.map((i) => prefix + `${prefixKey}:${i}`);
     const values = await redis.mget(...keys);
     const result = {};
     values.forEach((val, idx) => {
       if (val !== null && val !== undefined) {
-        result[idx + 1] = String(val);
+        result[nums[idx]] = String(val);
       }
     });
     return result;
@@ -151,16 +144,16 @@ export async function handler(event) {
   });
 
   // Preenche dados faltantes com valores individuais
-  for (let i = 1; i <= ticketCounter; i++) {
+  nums.forEach((i) => {
     const tk = map[i];
     if (!tk.entered && enteredTimes[i]) tk.entered = enteredTimes[i];
     if (!tk.called && calledTimes[i]) tk.called = calledTimes[i];
     if (!tk.attended && attendedTimes[i]) tk.attended = attendedTimes[i];
     if (!tk.cancelled && cancelledTimes[i]) tk.cancelled = cancelledTimes[i];
     if (!tk.identifier && identifiers[i]) tk.identifier = identifiers[i];
-  }
+  });
 
-    const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
+    const tickets = nums.map((n) => map[n]);
     // Helper para exibir datas no formato brasileiro
     const format = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
     const toHms = (ms) => {
@@ -240,7 +233,7 @@ export async function handler(event) {
       body: JSON.stringify({
         tickets,
         summary: {
-          totalTickets: ticketCounter,
+          totalTickets: nums.length,
           attendedCount,
           cancelledCount,
           missedCount,
