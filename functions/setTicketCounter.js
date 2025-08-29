@@ -22,14 +22,25 @@ export async function handler(event) {
       return { statusCode: 404, body: "Invalid link" };
     }
     const prefix = `tenant:${tenantId}:`;
-    const last = Number(await redis.get(prefix + "ticketCounter") || 0);
+    const last   = Number(await redis.get(prefix + "ticketCounter") || 0);
+    const called = Number(await redis.get(prefix + "callCounter") || 0);
     if (nextTicket <= last) {
       return { statusCode: 400, body: "Ticket must be greater than last" };
     }
+
+    const gap = nextTicket - last - 1; // números pulados
+
     await redis.mset({
       [prefix + "ticketCounter"]: nextTicket - 1,
-      [prefix + "callCounter"]: nextTicket - 1,
+      ...(called >= last ? { [prefix + "callCounter"]: nextTicket - 1 } : {}),
     });
+
+    if (called >= last) {
+      await redis.del(prefix + "skippedSet");
+    } else if (gap > 0) {
+      const skips = Array.from({ length: gap }, (_, i) => String(last + 1 + i));
+      await redis.sadd(prefix + "skippedSet", ...skips);
+    }
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true, ticketNumber: nextTicket })

@@ -31,20 +31,23 @@ export async function handler(event) {
   const ticketCounter = Number(ticketCounterRaw || 0);
   const attendant     = attendantRaw || "";
   const timestamp     = Number(timestampRaw || 0);
-  const [cancelledSet, missedSet, attendedSet, nameMap] = await Promise.all([
+  const [cancelledSet, missedSet, attendedSet, skippedSet, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
     redis.smembers(prefix + "attendedSet"),
+    redis.smembers(prefix + "skippedSet"),
     redis.hgetall(prefix + "ticketNames")
   ]);
   const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
   const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
+  const skippedNums   = skippedSet.map(n => Number(n)).sort((a, b) => a - b);
   const cancelledCount= cancelledNums.length;
   const missedCount   = missedNums.length;
   const attendedCount = attendedNums.length;
+  const skippedCount  = skippedNums.length;
   const waiting       = Math.max(0,
-    ticketCounter - callCounter - cancelledCount - missedCount - attendedCount
+    ticketCounter - callCounter - cancelledCount - missedCount - attendedCount - skippedCount
   );
 
   return {
@@ -61,6 +64,7 @@ export async function handler(event) {
       missedCount,
       attendedNumbers: attendedNums,
       attendedCount,
+      skippedNumbers: skippedNums,
       waiting,
       names: nameMap || {},
       logoutVersion: Number(logoutVersionRaw || 0),

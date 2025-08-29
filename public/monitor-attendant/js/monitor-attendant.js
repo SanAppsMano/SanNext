@@ -369,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let callCounter    = 0;
   let cancelledNums  = [];
   let missedNums     = [];
+  let skippedNums    = [];
   let cancelledCount = 0;
   let missedCount    = 0;
   let attendedNums   = [];
@@ -537,7 +538,7 @@ function startBouncingCompanyName(text) {
     const pending = [];
     for (let i = callCounter + 1; i <= ticketCounter; i++) {
       if (i === currentCallNum) continue;
-      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
+      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i) || skippedNums.includes(i)) continue;
       pending.push(i);
     }
     pending.forEach(n => {
@@ -570,6 +571,7 @@ function startBouncingCompanyName(text) {
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
+        skippedNumbers = [],
         cancelledCount: cc = 0,
         missedCount: mc = 0,
         attendedCount: ac = 0,
@@ -594,6 +596,7 @@ function startBouncingCompanyName(text) {
       cancelledNums   = cancelledNumbers.map(Number);
       missedNums      = missedNumbers.map(Number);
       attendedNums    = attendedNumbers.map(Number);
+      skippedNums     = skippedNumbers.map(Number);
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
