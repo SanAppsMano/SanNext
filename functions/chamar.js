@@ -34,14 +34,16 @@ export async function handler(event) {
       // um número é chamado manualmente
       await redis.srem(prefix + "cancelledSet", String(next));
       await redis.srem(prefix + "missedSet", String(next));
+      await redis.srem(prefix + "skippedSet", String(next));
     } else {
       next = await redis.incr(counterKey);
       const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
-      // Se automático, pular tickets cancelados e perdidos sem removê-los
+      // Se automático, pular tickets cancelados, perdidos ou pulados sem removê-los
       while (
         next <= ticketCount &&
         ((await redis.sismember(prefix + "cancelledSet", String(next))) ||
-         (await redis.sismember(prefix + "missedSet", String(next))))
+         (await redis.sismember(prefix + "missedSet", String(next))) ||
+         (await redis.sismember(prefix + "skippedSet", String(next))))
       ) {
         next = await redis.incr(counterKey);
       }
@@ -52,12 +54,13 @@ export async function handler(event) {
     // chamadas manuais entre eles. Assim tickets com ou sem nome são
     // tratados igualmente.
     if (!paramNum && prevCounter && next > prevCounter) {
-      const [isCancelled, isMissed, isAttended] = await Promise.all([
+      const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
         redis.sismember(prefix + "cancelledSet", String(prevCounter)),
         redis.sismember(prefix + "missedSet", String(prevCounter)),
-        redis.sismember(prefix + "attendedSet", String(prevCounter))
+        redis.sismember(prefix + "attendedSet", String(prevCounter)),
+        redis.sismember(prefix + "skippedSet", String(prevCounter))
       ]);
-      if (!isCancelled && !isMissed && !isAttended) {
+      if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
         const calledTs = Number(await redis.get(prefix + `calledTime:${prevCounter}`) || 0);
         const dur = calledTs ? Date.now() - calledTs : 0;
         const waitPrev = Number(await redis.get(prefix + `wait:${prevCounter}`) || 0);
