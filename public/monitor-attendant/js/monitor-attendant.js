@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnChangePw.onclick = () => {
     passwordError.textContent = '';
-    passwordCurrent.value = '';
+    passwordCurrent.value = cfg?.senha || '';
     passwordCurrent.type = 'password';
     togglePwCurrent.textContent = '👁️';
     passwordNew.value = '';
