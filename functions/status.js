@@ -92,19 +92,25 @@ export async function handler(event) {
   const cancelledCount = cancelledNums.length;
   const missedCount    = missedNums.length;
   const attendedCount  = attendedNums.length;
-  const skippedCount   = skippedNums.length;
   const offHoursCount  = offHoursNums.length;
+  const cancelledSet = new Set(cancelledNums);
+  const missedSet    = new Set(missedNums);
+  const attendedSet  = new Set(attendedNums);
+  const skippedSet   = new Set(skippedNums);
+  const offHoursSet  = new Set(offHoursNums);
 
-  const cancelledAfter = cancelledNums.filter(n => n > callCounter);
-  const missedAfter    = missedNums.filter(n => n > callCounter);
-  const attendedAfter  = attendedNums.filter(n => n > callCounter);
-  const skippedAfter   = skippedNums.filter(n => n > callCounter);
-  const offHoursAfter  = offHoursNums.filter(n => n > callCounter);
-
-  let waiting = ticketCounter - callCounter -
-    cancelledAfter.length - missedAfter.length - attendedAfter.length - skippedAfter.length - offHoursAfter.length;
-  if (currentCall > callCounter) waiting -= 1;
-  waiting = Math.max(0, waiting);
+  let waiting = 0;
+  for (let i = callCounter + 1; i <= ticketCounter; i++) {
+    if (
+      !cancelledSet.has(i) &&
+      !missedSet.has(i) &&
+      !attendedSet.has(i) &&
+      !skippedSet.has(i) &&
+      !offHoursSet.has(i)
+    ) {
+      waiting++;
+    }
+  }
 
   return {
     statusCode: 200,
