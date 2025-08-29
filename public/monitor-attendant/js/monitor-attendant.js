@@ -160,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastTicketSpan = document.getElementById('last-ticket');
   const setTicketBtn   = document.getElementById('set-ticket');
   const ticketError    = document.getElementById('ticket-error');
-  updateTicketSetter();
   adminToggle?.addEventListener('click', () => {
     adminPanel.hidden = !adminPanel.hidden;
   });
@@ -384,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sec = String(s % 60).padStart(2,'0');
     return `${h}:${m}:${sec}`;
   };
+  updateTicketSetter();
 
  /** Renderiza o QR Code e configura interação */
 function renderQRCode(tId) {
