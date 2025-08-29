@@ -26,7 +26,10 @@ export async function handler(event) {
     if (nextTicket <= last) {
       return { statusCode: 400, body: "Ticket must be greater than last" };
     }
-    await redis.set(prefix + "ticketCounter", nextTicket - 1);
+    await redis.mset({
+      [prefix + "ticketCounter"]: nextTicket - 1,
+      [prefix + "callCounter"]: nextTicket - 1,
+    });
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true, ticketNumber: nextTicket })
