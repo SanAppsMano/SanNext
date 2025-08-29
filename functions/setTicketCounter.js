@@ -34,7 +34,6 @@ export async function handler(event) {
       [prefix + "ticketCounter"]: nextTicket - 1,
       ...(called >= last ? { [prefix + "callCounter"]: nextTicket - 1 } : {}),
     });
-    await redis.del(prefix + "offHoursSet");
 
     if (called >= last) {
       await redis.del(prefix + "skippedSet");

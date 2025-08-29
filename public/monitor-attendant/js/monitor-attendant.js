@@ -371,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedNums     = [];
   let skippedNums    = [];
   let offHoursNums   = [];
+  let offHoursSet    = new Set();
   let cancelledCount = 0;
   let missedCount    = 0;
   let attendedNums   = [];
@@ -551,7 +552,7 @@ function startBouncingCompanyName(text) {
       const li = document.createElement('li');
       const nm = ticketNames[n];
       let text = nm ? `${n} - ${nm}` : String(n);
-      if (offHoursNums.includes(n)) text += ' - Fora do horário';
+      if (offHoursSet.has(n)) text += ' - Fora do horário';
       li.textContent = text;
       queueListEl.appendChild(li);
     });
@@ -607,6 +608,7 @@ function startBouncingCompanyName(text) {
       attendedNums    = attendedNumbers.map(Number);
       skippedNums     = skippedNumbers.map(Number);
       offHoursNums    = offHoursNumbers.map(Number);
+      offHoursSet     = new Set(offHoursNums);
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
@@ -769,7 +771,8 @@ function startBouncingCompanyName(text) {
         <p>Cancelados: ${cancelledCount}</p>
         <p>Perderam a vez: ${missedCount}</p>
         <p>Chamados: ${calledCount}</p>
-        <p>Em espera: ${waitingCount}</p>`;
+        <p>Em espera: ${waitingCount}</p>
+        <p>Fora do horário: ${offHoursReport}</p>`;
     }
 
     // Monta tabela
