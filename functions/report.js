@@ -211,6 +211,7 @@ export async function handler(event) {
     const missedCount    = counts.missed;
     const waitingCount   = counts.waiting;
     const calledCount    = counts.called;
+    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount;
 
     const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
     const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
@@ -226,7 +227,7 @@ export async function handler(event) {
       body: JSON.stringify({
         tickets,
         summary: {
-          totalTickets: tickets.length,
+          totalTickets,
           attendedCount,
           cancelledCount,
           missedCount,

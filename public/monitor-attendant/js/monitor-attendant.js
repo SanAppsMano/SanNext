@@ -731,6 +731,7 @@ function startBouncingCompanyName(text) {
       cancelledCount = 0,
       missedCount = 0,
       waitingCount = 0,
+      calledCount = 0,
       avgWait = 0,
       avgDur = 0,
       avgWaitHms = '00:00:00',
@@ -742,7 +743,8 @@ function startBouncingCompanyName(text) {
         !attendedCount &&
         !cancelledCount &&
         !missedCount &&
-        !waitingCount) {
+        !waitingCount &&
+        !calledCount) {
       reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
     } else {
       reportSummary.innerHTML = `
@@ -752,6 +754,7 @@ function startBouncingCompanyName(text) {
         <p>Tempo médio de atendimento: ${avgDurHms}</p>
         <p>Cancelados: ${cancelledCount}</p>
         <p>Perderam a vez: ${missedCount}</p>
+        <p>Chamados: ${calledCount}</p>
         <p>Em espera: ${waitingCount}</p>`;
     }
 
