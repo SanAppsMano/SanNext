@@ -612,7 +612,7 @@ function startBouncingCompanyName(text) {
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
-      offHoursCount   = ohc;
+      offHoursCount   = ohc || offHoursNums.length;
 
       const cName = ticketNames[currentCall];
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
