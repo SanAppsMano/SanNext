@@ -693,11 +693,13 @@ function startBouncingCompanyName(text) {
     }
   }
 
-  function refreshAll(t) {
-    fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); loadCloneList(t); });
+  async function refreshAll(t) {
+    await fetchStatus(t);
+    await Promise.all([fetchCancelled(t), fetchAttended(t), loadCloneList(t)]);
   }
 
   async function openReport(t) {
+    await refreshAll(t);
     reportModal.hidden = false;
     if (cfg && cfg.empresa) {
       reportTitle.textContent = `Relatório - ${cfg.empresa}`;
@@ -726,17 +728,18 @@ function startBouncingCompanyName(text) {
     }
 
     const {
-      totalTickets = 0,
-      attendedCount = 0,
-      cancelledCount = 0,
-      missedCount = 0,
-      waitingCount = 0,
       calledCount = 0,
       avgWait = 0,
       avgDur = 0,
       avgWaitHms = '00:00:00',
       avgDurHms = '00:00:00'
     } = summary;
+
+    const attendedCount  = Number(attendedCountEl.textContent) || 0;
+    const cancelledCount = Number(cancelCountEl.textContent) || 0;
+    const missedCount    = Number(missedCountEl.textContent) || 0;
+    const waitingCount   = Number(waitingEl.textContent) || 0;
+    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount;
 
     if (!tickets.length &&
         !totalTickets &&
