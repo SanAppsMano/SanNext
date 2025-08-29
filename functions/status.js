@@ -1,6 +1,11 @@
 import { Redis } from "@upstash/redis";
+import rateLimit from "./utils/rateLimiter.js";
 
 export async function handler(event) {
+  const ip = (event.headers && event.headers["x-forwarded-for"] || "").split(",")[0];
+  if (await rateLimit(ip)) {
+    return { statusCode: 429, body: "Too Many Requests" };
+  }
   const url      = new URL(event.rawUrl);
   const tenantId = url.searchParams.get("t");
   if (!tenantId) {
