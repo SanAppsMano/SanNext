@@ -8,42 +8,38 @@ export async function handler(event) {
   }
 
   const redis  = Redis.fromEnv();
-  const [pwHash, monitor] = await redis.mget(
+  const [pwHash, monitorRaw, schedRaw] = await redis.mget(
     `tenant:${tenantId}:pwHash`,
-    `monitor:${tenantId}`
+    `monitor:${tenantId}`,
+    `tenant:${tenantId}:schedule`
   );
-  if (!pwHash && !monitor) {
+  if (!pwHash && !monitorRaw) {
     return { statusCode: 404, body: "Invalid link" };
   }
   const prefix = `tenant:${tenantId}:`;
 
+  let schedule = null;
+  if (schedRaw) {
+    try { schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw; } catch {}
+  } else if (monitorRaw) {
+    try { schedule = JSON.parse(monitorRaw).schedule || null; } catch {}
+  }
+  const withinSchedule = (sched) => {
+    if (!sched) return true;
+    const now = new Date();
+    const day = now.getDay();
+    if (!sched.days || !sched.days.includes(day)) return false;
+    if (!sched.intervals || sched.intervals.length === 0) return true;
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
+  };
+
   const ticketParam = url.searchParams.get("tk");
   if (ticketParam) {
     const tNum = Number(ticketParam);
-    if (await redis.sismember(prefix + "offHoursSet", String(tNum))) {
-      const [schedRaw, monitorRaw] = await redis.mget(
-        prefix + "schedule",
-        `monitor:${tenantId}`
-      );
-      let schedule = null;
-      if (schedRaw) {
-        try { schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw; } catch {}
-      } else if (monitorRaw) {
-        try { schedule = JSON.parse(monitorRaw).schedule || null; } catch {}
-      }
-      const withinSchedule = (sched) => {
-        if (!sched) return true;
-        const now = new Date();
-        const day = now.getDay();
-        if (!sched.days || !sched.days.includes(day)) return false;
-        if (!sched.intervals || sched.intervals.length === 0) return true;
-        const mins = now.getHours() * 60 + now.getMinutes();
-        const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-        return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
-      };
-      if (withinSchedule(schedule)) {
-        await redis.srem(prefix + "offHoursSet", String(tNum));
-      }
+    if (await redis.sismember(prefix + "offHoursSet", String(tNum)) && withinSchedule(schedule)) {
+      await redis.srem(prefix + "offHoursSet", String(tNum));
     }
   }
 
@@ -70,7 +66,11 @@ export async function handler(event) {
     redis.hgetall(prefix + "ticketNames")
   ]);
 
-  const offHoursNums = offHoursList.map(n => Number(n)).sort((a, b) => a - b);
+  let offHoursNums = offHoursList.map(n => Number(n)).sort((a, b) => a - b);
+  if (offHoursNums.length && withinSchedule(schedule)) {
+    await redis.srem(prefix + "offHoursSet", ...offHoursList);
+    offHoursNums = [];
+  }
 
   const cancelledNums = cancelledList.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedList.map(n => Number(n)).sort((a, b) => a - b);

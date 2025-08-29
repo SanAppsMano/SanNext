@@ -212,8 +212,7 @@ btnStart.addEventListener("click", async () => {
 });
 
 async function getTicket() {
-  const off = withinSchedule() ? 0 : 1;
-  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}&off=${off}`);
+  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}`);
   if (!res) return;
   const data = await res.json();
   clientId     = data.clientId;

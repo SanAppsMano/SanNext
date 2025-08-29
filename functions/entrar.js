@@ -58,8 +58,7 @@ export async function handler(event) {
       [prefix + `ticketTime:${ticketNumber}`]: Date.now(),
     });
 
-    const offParam   = url.searchParams.get("off");
-    const isOffHours = offParam === "1" || !withinSchedule(schedule);
+    const isOffHours = !withinSchedule(schedule);
     if (isOffHours) {
       await redis.sadd(prefix + "offHoursSet", String(ticketNumber));
     }
