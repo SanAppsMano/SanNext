@@ -41,7 +41,22 @@ export async function handler(event) {
   const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
   const attendedNums  = attendedSet.map(n => Number(n)).sort((a, b) => a - b);
-  const skippedNums   = skippedSet.map(n => Number(n)).sort((a, b) => a - b);
+
+  // Remove números pulados que correspondem a tickets reais
+  let skippedNums     = skippedSet.map(n => Number(n)).sort((a, b) => a - b);
+  if (skippedNums.length) {
+    const keys   = skippedNums.map(n => prefix + `ticketTime:${n}`);
+    const exists = await redis.mget(...keys);
+    const toKeep = [];
+    const toRem  = [];
+    skippedNums.forEach((n, i) => {
+      if (exists[i]) toRem.push(String(n));
+      else           toKeep.push(n);
+    });
+    if (toRem.length) await redis.srem(prefix + "skippedSet", ...toRem);
+    skippedNums = toKeep;
+  }
+
   const cancelledCount= cancelledNums.length;
   const missedCount   = missedNums.length;
   const attendedCount = attendedNums.length;
