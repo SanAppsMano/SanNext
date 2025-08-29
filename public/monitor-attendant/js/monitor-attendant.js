@@ -257,7 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const intervals = [];
     if (editUse1.checked) intervals.push({ start: editStart1.value, end: editEnd1.value });
     if (editUse2.checked) intervals.push({ start: editStart2.value, end: editEnd2.value });
-    const schedule = { days, intervals };
+    const tz       = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const schedule = { days, intervals, tz };
     try {
       const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
         method: 'POST',
@@ -1350,7 +1351,8 @@ function startBouncingCompanyName(text) {
         const intervals = [];
         if (use1Checkbox.checked) intervals.push({ start: start1Input.value, end: end1Input.value });
         if (use2Checkbox.checked) intervals.push({ start: start2Input.value, end: end2Input.value });
-        const schedule = { days, intervals };
+        const tz       = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const schedule = { days, intervals, tz };
         const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},

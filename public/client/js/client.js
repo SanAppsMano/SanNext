@@ -74,7 +74,8 @@ async function fetchSchedule() {
 
 function withinSchedule() {
   if (!schedule) return false;
-  const now  = new Date();
+  const tz  = schedule.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
   const day  = now.getDay();
   const days = (schedule.days || []).map(Number);
   if (!days.includes(day)) return false;
@@ -91,7 +92,8 @@ function withinSchedule() {
 
 function msUntilNextInterval() {
   if (!schedule) return null;
-  const now = new Date();
+  const tz  = schedule.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
   const baseIntervals = (schedule.intervals && schedule.intervals.length)
     ? schedule.intervals.slice().sort((a, b) => a.start.localeCompare(b.start))
     : [{ start: '00:00' }];

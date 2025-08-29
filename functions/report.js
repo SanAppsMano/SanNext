@@ -74,7 +74,8 @@ export async function handler(event) {
     }
     const withinSchedule = (sched) => {
       if (!sched) return true;
-      const now  = new Date();
+      const tz   = sched.tz || "America/Sao_Paulo";
+      const now  = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
       const day  = now.getDay();
       const days = (sched.days || []).map(Number);
       if (!days.includes(day)) return false;
