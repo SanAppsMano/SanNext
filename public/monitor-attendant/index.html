@@ -90,6 +90,13 @@
   <button id="clone-revoke" class="btn btn-secondary" hidden>Revogar</button>
   <nav id="admin-panel" class="admin-panel" hidden>
     <h3>Administração</h3>
+    <div class="ticket-setter">
+      <label for="next-ticket">Próximo ticket</label>
+      <input id="next-ticket" type="number" min="1" value="1" />
+      <small>Último ticket: <span id="last-ticket">0</span></small>
+      <button id="set-ticket" class="btn btn-secondary">Definir</button>
+      <div id="ticket-error" class="error"></div>
+    </div>
     <button id="btn-delete-config" class="btn btn-secondary">Redefinir Cadastro</button>
     <button id="btn-view-monitor" class="btn btn-secondary">Espelhar Monitor</button>
     <button id="btn-edit-schedule" class="btn btn-secondary">Editar Horário</button>

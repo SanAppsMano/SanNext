@@ -746,6 +746,28 @@ body {
   font-size: 1rem;
 }
 
+.admin-panel .ticket-setter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-panel .ticket-setter input {
+  padding: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+
+.admin-panel .ticket-setter small {
+  color: var(--muted);
+}
+
+.admin-panel .error {
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
 .admin-panel .clones-panel {
   margin-top: 0.75rem;
   border-top: 1px solid #eee;

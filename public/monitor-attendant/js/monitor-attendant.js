@@ -156,6 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRevokeClone = document.getElementById('clone-revoke');
   const adminToggle    = document.getElementById('admin-toggle');
   const adminPanel     = document.getElementById('admin-panel');
+  const nextTicketInput= document.getElementById('next-ticket');
+  const lastTicketSpan = document.getElementById('last-ticket');
+  const setTicketBtn   = document.getElementById('set-ticket');
+  const ticketError    = document.getElementById('ticket-error');
+  updateTicketSetter();
   adminToggle?.addEventListener('click', () => {
     adminPanel.hidden = !adminPanel.hidden;
   });
@@ -543,6 +548,16 @@ function startBouncingCompanyName(text) {
     });
   }
 
+  function updateTicketSetter() {
+    if (!nextTicketInput || !lastTicketSpan) return;
+    const min = ticketCounter > 0 ? ticketCounter + 1 : 1;
+    nextTicketInput.min = String(min);
+    if (!nextTicketInput.value || Number(nextTicketInput.value) < min) {
+      nextTicketInput.value = String(min);
+    }
+    lastTicketSpan.textContent = String(ticketCounter);
+  }
+
   /** Busca status e atualiza UI */
   async function fetchStatus(t) {
     try {
@@ -620,6 +635,7 @@ function startBouncingCompanyName(text) {
 
       // Exibe o botão de relatório apenas se houver tickets registrados
       btnReport.hidden = ticketCounter === 0;
+      updateTicketSetter();
     } catch (e) {
       console.error(e);
     }
@@ -1106,6 +1122,30 @@ function startBouncingCompanyName(text) {
         body: JSON.stringify({ name })
       });
       refreshAll(t);
+    };
+    setTicketBtn.onclick = async () => {
+      const desired = Number(nextTicketInput.value);
+      const min = Number(nextTicketInput.min);
+      if (isNaN(desired) || desired < min) {
+        ticketError.textContent = `Número deve ser >= ${min}`;
+        return;
+      }
+      ticketError.textContent = '';
+      try {
+        const res = await fetch(`/.netlify/functions/setTicketCounter?t=${t}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticket: desired })
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          ticketError.textContent = txt || 'Erro ao definir ticket';
+          return;
+        }
+        refreshAll(t);
+      } catch (e) {
+        ticketError.textContent = 'Erro de conexão';
+      }
     };
     btnReset.onclick = async () => {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
