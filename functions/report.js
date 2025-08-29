@@ -28,10 +28,6 @@ export async function handler(event) {
       redis.smembers(prefix + "missedSet"),
       redis.smembers(prefix + "attendedSet"),
       redis.hgetall(prefix + "ticketNames"),
-      redis.get(prefix + "callCounter"),
-      redis.get(prefix + "ticketCounter"),
-      redis.get(prefix + "currentCall"),
-      redis.smembers(prefix + "skippedSet"),
     ]);
 
     const [
@@ -43,10 +39,6 @@ export async function handler(event) {
       missedSet,
       attendedSet,
       nameMap,
-      callCounterRaw,
-      ticketCounterRaw,
-      currentCallRaw,
-      skippedSet,
     ] = data;
 
   const safeParse = (val) => {
@@ -66,11 +58,6 @@ export async function handler(event) {
   const cancelledNums = cancelledSet.map(n => Number(n));
   const missedNums    = missedSet.map(n => Number(n));
   const attendedNums  = attendedSet.map(n => Number(n));
-  const skippedNums   = skippedSet.map(n => Number(n));
-
-  const callCounter   = Number(callCounterRaw || 0);
-  const ticketCounter = Number(ticketCounterRaw || 0);
-  const currentCall   = Number(currentCallRaw || 0);
 
   const ticketNumbers = new Set([
     ...entered.map(e => e.ticket),
@@ -215,31 +202,16 @@ export async function handler(event) {
       if (tk.duration) tk.durationHms = toHms(tk.duration);
     });
 
-    // Contabiliza quantidades de forma robusta combinando logs e sets
-    const attendedTickets  = new Set([
-      ...attendedNums,
-      ...attended.map(a => a.ticket)
-    ]);
-    const cancelledTickets = new Set([
-      ...cancelledNums,
-      ...cancelled.filter(c => c.reason !== "missed").map(c => c.ticket)
-    ]);
-    const missedTickets    = new Set([
-      ...missedNums,
-      ...cancelled.filter(c => c.reason === "missed").map(c => c.ticket)
-    ]);
-    const attendedCount  = attendedTickets.size;
-    const cancelledCount = cancelledTickets.size;
-    const missedCount    = missedTickets.size;
+    const counts = { waiting: 0, called: 0, attended: 0, cancelled: 0, missed: 0 };
+    tickets.forEach(t => {
+      if (counts[t.status] !== undefined) counts[t.status] += 1;
+    });
+    const attendedCount  = counts.attended;
+    const cancelledCount = counts.cancelled;
+    const missedCount    = counts.missed;
+    const waitingCount   = counts.waiting;
+    const calledCount    = counts.called;
 
-    const cancelledAfter = cancelledNums.filter(n => n > callCounter);
-    const missedAfter    = missedNums.filter(n => n > callCounter);
-    const attendedAfter  = attendedNums.filter(n => n > callCounter);
-    const skippedAfter   = skippedNums.filter(n => n > callCounter);
-    let waitingCount = ticketCounter - callCounter -
-      cancelledAfter.length - missedAfter.length - attendedAfter.length - skippedAfter.length;
-    if (currentCall > callCounter) waitingCount -= 1;
-    waitingCount = Math.max(0, waitingCount);
     const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
     const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
     const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
@@ -254,10 +226,11 @@ export async function handler(event) {
       body: JSON.stringify({
         tickets,
         summary: {
-          totalTickets: nums.length,
+          totalTickets: tickets.length,
           attendedCount,
           cancelledCount,
           missedCount,
+          calledCount,
           waitingCount,
           avgWait,
           avgDur,
