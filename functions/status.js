@@ -57,13 +57,20 @@ export async function handler(event) {
     skippedNums = toKeep;
   }
 
-  const cancelledCount= cancelledNums.length;
-  const missedCount   = missedNums.length;
-  const attendedCount = attendedNums.length;
-  const skippedCount  = skippedNums.length;
-  const waiting       = Math.max(0,
-    ticketCounter - callCounter - cancelledCount - missedCount - attendedCount - skippedCount
-  );
+  const cancelledCount = cancelledNums.length;
+  const missedCount    = missedNums.length;
+  const attendedCount  = attendedNums.length;
+  const skippedCount   = skippedNums.length;
+
+  const cancelledAfter = cancelledNums.filter(n => n > callCounter);
+  const missedAfter    = missedNums.filter(n => n > callCounter);
+  const attendedAfter  = attendedNums.filter(n => n > callCounter);
+  const skippedAfter   = skippedNums.filter(n => n > callCounter);
+
+  let waiting = ticketCounter - callCounter -
+    cancelledAfter.length - missedAfter.length - attendedAfter.length - skippedAfter.length;
+  if (currentCall > callCounter) waiting -= 1;
+  waiting = Math.max(0, waiting);
 
   return {
     statusCode: 200,
