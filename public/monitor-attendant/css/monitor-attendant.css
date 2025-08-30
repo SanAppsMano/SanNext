@@ -765,12 +765,11 @@ body {
 }
 
 .admin-panel .ticket-setter .ticket-input-row {
-  display: flex;
-  gap: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .admin-panel .ticket-setter .ticket-input-row input {
-  flex: 1;
+  width: 100%;
   height: 1.75rem;
 }
 
@@ -782,6 +781,11 @@ body {
 
 .admin-panel .ticket-setter small {
   color: var(--muted);
+}
+
+.admin-panel .ticket-setter #set-ticket {
+  width: 100%;
+  margin-top: 0.25rem;
 }
 
 .admin-panel .error {
