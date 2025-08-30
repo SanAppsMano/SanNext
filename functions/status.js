@@ -45,20 +45,13 @@ export async function handler(event) {
     }
   }
 
-  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
-    await redis.mget(
-      prefix + "currentCall",
-      prefix + "callCounter",
-      prefix + "ticketCounter",
-      prefix + "currentAttendant",
-      prefix + "currentCallTs",
-      prefix + "logoutVersion"
-    );
-  const currentCall   = Number(currentCallRaw || 0);
-  const callCounter   = Number(callCounterRaw || 0);
-  const ticketCounter = Number(ticketCounterRaw || 0);
-  const attendant     = attendantRaw || "";
-  const timestamp     = Number(timestampRaw || 0);
+  const state = await redis.hgetall(prefix + "state");
+  const currentCall   = Number((state && state.currentCall) || 0);
+  const callCounter   = Number((state && state.callCounter) || 0);
+  const ticketCounter = Number((state && state.ticketCounter) || 0);
+  const attendant     = (state && state.currentAttendant) || "";
+  const timestamp     = Number((state && state.currentCallTs) || 0);
+  const logoutVersion = Number((state && state.logoutVersion) || 0);
   const [cancelledList, missedList, attendedList, skippedList, offHoursList, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
@@ -135,7 +128,7 @@ export async function handler(event) {
       offHoursCount,
       waiting,
       names: nameMap || {},
-      logoutVersion: Number(logoutVersionRaw || 0),
+      logoutVersion,
     }),
   };
 }

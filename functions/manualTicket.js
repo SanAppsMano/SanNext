@@ -19,9 +19,10 @@ export async function handler(event) {
   }
   const { name = "" } = JSON.parse(event.body || "{}");
 
-  const prefix = `tenant:${tenantId}:`;
+  const prefix   = `tenant:${tenantId}:`;
+  const stateKey = prefix + "state";
 
-  const ticketNumber = await redis.incr(prefix + "ticketCounter");
+  const ticketNumber = await redis.hincrby(stateKey, "ticketCounter", 1);
   await redis.set(prefix + `ticketTime:${ticketNumber}`, Date.now());
   if (name) {
     await redis.hset(prefix + "ticketNames", { [ticketNumber]: name });

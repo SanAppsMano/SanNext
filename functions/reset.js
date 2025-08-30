@@ -24,12 +24,15 @@ export async function handler(event) {
     const prefix = `tenant:${tenantId}:`;
     const ts     = Date.now();
 
-    // Zera todos os contadores
-    await redis.set(prefix + "ticketCounter", 0);
-    await redis.set(prefix + "callCounter",  0);
-    await redis.set(prefix + "currentCall",  0);
-    await redis.set(prefix + "currentCallTs", ts);
-    await redis.del(prefix + "currentAttendant");
+    // Zera todos os contadores em um único hash
+    const stateKey = prefix + "state";
+    await redis.hset(stateKey, {
+      ticketCounter: 0,
+      callCounter: 0,
+      currentCall: 0,
+      currentCallTs: ts,
+    });
+    await redis.hdel(stateKey, "currentAttendant");
     await redis.del(prefix + "cancelledSet");
     await redis.del(prefix + "missedSet");
     await redis.del(prefix + "attendedSet");

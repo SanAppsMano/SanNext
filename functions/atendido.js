@@ -22,7 +22,8 @@ export async function handler(event) {
     return { statusCode: 400, body: "Missing ticket" };
   }
 
-  const prefix = `tenant:${tenantId}:`;
+  const prefix   = `tenant:${tenantId}:`;
+  const stateKey = prefix + "state";
 
   const ticketStr = String(ticket);
   await redis.sadd(prefix + "attendedSet", ticketStr);
@@ -40,21 +41,18 @@ export async function handler(event) {
     } catch {}
   }
 
-  const [callTsRaw, waitRaw] = await redis.mget(
-    prefix + "currentCallTs",
-    prefix + `wait:${ticket}`
-  );
+  const [callTsRaw, waitRaw] = await Promise.all([
+    redis.hget(stateKey, "currentCallTs"),
+    redis.get(prefix + `wait:${ticket}`),
+  ]);
   const callTs  = Number(callTsRaw || 0);
   const duration = callTs ? Date.now() - callTs : 0;
   const wait     = Number(waitRaw || 0);
   await redis.del(prefix + `wait:${ticket}`);
 
   // Limpa a chamada atual para evitar que o número seja marcado como perdido
-  await redis.mset({
-    [prefix + "currentCall"]: 0,
-    [prefix + "currentCallTs"]: 0,
-  });
-  await redis.del(prefix + "currentAttendant");
+  await redis.hset(stateKey, { currentCall: 0, currentCallTs: 0 });
+  await redis.hdel(stateKey, "currentAttendant");
 
   // registra a finalização do atendimento
   const ts = Date.now();
