@@ -56,16 +56,17 @@ export async function handler(event) {
     // chamadas manuais entre eles. Assim tickets com ou sem nome são
     // tratados igualmente.
     if (!paramNum && prevCounter && next > prevCounter) {
-      const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
+      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
         redis.sismember(prefix + "cancelledSet", String(prevCounter)),
         redis.sismember(prefix + "missedSet", String(prevCounter)),
         redis.sismember(prefix + "attendedSet", String(prevCounter)),
-        redis.sismember(prefix + "skippedSet", String(prevCounter))
+        redis.sismember(prefix + "skippedSet", String(prevCounter)),
+        redis.get(prefix + `ticketTime:${prevCounter}`)
       ]);
-      if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
-        const calledTs = Number(await redis.get(prefix + `calledTime:${prevCounter}`) || 0);
+      if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
+        const calledTs = Number((await redis.get(prefix + `calledTime:${prevCounter}`)) || 0);
         const dur = calledTs ? Date.now() - calledTs : 0;
-        const waitPrev = Number(await redis.get(prefix + `wait:${prevCounter}`) || 0);
+        const waitPrev = Number((await redis.get(prefix + `wait:${prevCounter}`)) || 0);
         await redis.sadd(prefix + "missedSet", String(prevCounter));
         const missTs = Date.now();
         // registra o momento em que o ticket perdeu a vez
