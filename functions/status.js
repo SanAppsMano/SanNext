@@ -48,6 +48,7 @@ export async function handler(event) {
   }
 
   const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
+    // consolidated state fields in a single HMGET
     await redis.hmget(
       prefix + "state",
       "currentCall",
