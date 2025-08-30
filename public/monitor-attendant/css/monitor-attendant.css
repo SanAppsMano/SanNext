@@ -771,10 +771,11 @@ body {
 
 .admin-panel .ticket-setter .ticket-input-row input {
   flex: 1;
+  height: 1.75rem;
 }
 
 .admin-panel .ticket-setter input {
-  padding: 0.25rem;
+  padding: 0.15rem 0.25rem;
   border: 1px solid #ccc;
   border-radius: var(--radius);
 }
