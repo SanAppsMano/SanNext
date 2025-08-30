@@ -18,12 +18,15 @@ export async function handler(event) {
     await redis.set(`tenant:${tenantId}:label`, label);
     await redis.set(`tenant:${tenantId}:pwHash`, hash);
 
-    // Inicializa todos os contadores do tenant
-    await redis.set(`tenant:${tenantId}:ticketCounter`, 0);
-    await redis.set(`tenant:${tenantId}:callCounter`,  0);
-    await redis.set(`tenant:${tenantId}:currentCall`,  0);
-    await redis.set(`tenant:${tenantId}:currentCallTs`, Date.now());
-    await redis.set(`tenant:${tenantId}:logoutVersion`, 0);
+    // Inicializa todos os contadores do tenant em um único hash
+    const stateKey = `tenant:${tenantId}:state`;
+    await redis.hset(stateKey, {
+      ticketCounter: 0,
+      callCounter: 0,
+      currentCall: 0,
+      currentCallTs: Date.now(),
+      logoutVersion: 0,
+    });
     await redis.del(`tenant:${tenantId}:clones`);
 
     return {

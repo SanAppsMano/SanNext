@@ -19,12 +19,14 @@ export async function handler(event) {
     if (!pwHash && !monitor) {
       return { statusCode: 404, body: "Invalid link" };
     }
-    const prefix    = `tenant:${tenantId}:`;
-    const paramNum  = url.searchParams.get("num");
+    const prefix     = `tenant:${tenantId}:`;
+    const paramNum   = url.searchParams.get("num");
     const identifier = url.searchParams.get("id") || "";
 
-    const counterKey = prefix + "callCounter";
-    const prevCounter = Number(await redis.get(counterKey) || 0);
+    const stateKey = prefix + "state";
+    const [prevCounterRaw, ticketCountRaw] = await redis.hmget(stateKey, ["callCounter", "ticketCounter"]);
+    let prevCounter = Number(prevCounterRaw || 0);
+    let ticketCount = Number(ticketCountRaw || 0);
 
     // Próximo a chamar
     let next;
@@ -36,8 +38,8 @@ export async function handler(event) {
       await redis.srem(prefix + "missedSet", String(next));
       await redis.srem(prefix + "skippedSet", String(next));
     } else {
-      next = await redis.incr(counterKey);
-      const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
+      next = await redis.hincrby(stateKey, "callCounter", 1);
+      ticketCount = Number(ticketCountRaw || 0);
       // Se automático, pular tickets cancelados, perdidos ou pulados sem removê-los
       while (
         next <= ticketCount &&
@@ -45,7 +47,7 @@ export async function handler(event) {
          (await redis.sismember(prefix + "missedSet", String(next))) ||
          (await redis.sismember(prefix + "skippedSet", String(next))))
       ) {
-        next = await redis.incr(counterKey);
+        next = await redis.hincrby(stateKey, "callCounter", 1);
       }
     }
 
@@ -90,15 +92,17 @@ export async function handler(event) {
     // Atualiza dados da chamada em um único comando
     const updateData = {
       [prefix + `wait:${next}`]: wait,
-      [prefix + "currentCall"]: next,
-      [prefix + "currentCallTs"]: ts,
       [prefix + `calledTime:${next}`]: ts,
+      ...(identifier ? { [prefix + `identifier:${next}`]: identifier } : {}),
     };
-    if (identifier) {
-      updateData[prefix + `identifier:${next}`] = identifier;
-      updateData[prefix + "currentAttendant"] = identifier;
-    }
-    await redis.mset(updateData);
+    await Promise.all([
+      redis.mset(updateData),
+      redis.hset(stateKey, {
+        currentCall: next,
+        currentCallTs: ts,
+        ...(identifier ? { currentAttendant: identifier } : {}),
+      }),
+    ]);
 
     const name = await redis.hget(prefix + "ticketNames", String(next));
 
