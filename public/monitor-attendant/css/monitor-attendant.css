@@ -753,6 +753,12 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.admin-panel .ticket-setter h4 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+
 .admin-panel .ticket-setter input {
   padding: 0.25rem;
   border: 1px solid #ccc;

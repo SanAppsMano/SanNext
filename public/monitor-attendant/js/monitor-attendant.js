@@ -1176,6 +1176,13 @@ function startBouncingCompanyName(text) {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '');
+      ticketCounter = 0;
+      if (nextTicketInput) {
+        nextTicketInput.value = '1';
+        nextTicketInput.min   = '1';
+      }
+      if (lastTicketSpan) lastTicketSpan.textContent = '0';
+      updateTicketSetter();
       refreshAll(t);
     };
     btnReport.onclick = () => openReport(t);
