@@ -50,14 +50,12 @@ export async function handler(event) {
   const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
     await redis.hmget(
       prefix + "state",
-      [
-        "currentCall",
-        "callCounter",
-        "ticketCounter",
-        "currentAttendant",
-        "currentCallTs",
-        "logoutVersion",
-      ]
+      "currentCall",
+      "callCounter",
+      "ticketCounter",
+      "currentAttendant",
+      "currentCallTs",
+      "logoutVersion"
     );
   const currentCall   = Number(currentCallRaw || 0);
   const callCounter   = Number(callCounterRaw || 0);
