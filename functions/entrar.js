@@ -21,7 +21,8 @@ export async function handler(event) {
     if (!pwHash && !monitor) {
       return { statusCode: 404, body: "Invalid link" };
     }
-    const prefix = `tenant:${tenantId}:`;
+    const prefix   = `tenant:${tenantId}:`;
+    const stateKey = prefix + "state";
 
     let schedule = null;
     if (schedRaw) {
@@ -53,7 +54,7 @@ export async function handler(event) {
 
     // Cria clientId e incrementa contador de tickets
     const clientId     = uuidv4();
-    const ticketNumber = await redis.incr(prefix + "ticketCounter");
+    const ticketNumber = await redis.hincrby(stateKey, "ticketCounter", 1);
     // registra ticket e horário de entrada em um único comando
     await redis.mset({
       [prefix + `ticket:${clientId}`]: ticketNumber,
