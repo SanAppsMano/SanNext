@@ -90,19 +90,30 @@
   <button id="clone-revoke" class="btn btn-secondary" hidden>Revogar</button>
   <nav id="admin-panel" class="admin-panel" hidden>
     <h3>Administração</h3>
-    <div class="ticket-setter">
+    <div class="ticket-setter admin-section">
       <h4>Definir ticket inicial</h4>
       <label for="next-ticket">Próximo ticket</label>
-      <input id="next-ticket" type="number" min="1" value="1" />
+      <div class="ticket-input-row">
+        <input id="next-ticket" type="number" min="1" value="1" />
+        <button id="set-ticket" class="btn btn-secondary">Definir</button>
+      </div>
       <small>Último ticket: <span id="last-ticket">0</span></small>
-      <button id="set-ticket" class="btn btn-secondary">Definir</button>
       <div id="ticket-error" class="error"></div>
     </div>
-    <button id="btn-delete-config" class="btn btn-secondary">Redefinir Cadastro</button>
-    <button id="btn-view-monitor" class="btn btn-secondary">Espelhar Monitor</button>
-    <button id="btn-edit-schedule" class="btn btn-secondary">Editar Horário</button>
-    <button id="btn-clone" class="btn btn-secondary">Clonar Atendente</button>
-    <button id="btn-change-password" class="btn btn-secondary">Trocar Senha</button>
+
+    <div class="admin-section">
+      <h4>Configurações</h4>
+      <button id="btn-edit-schedule" class="btn btn-secondary">Editar Horário</button>
+      <button id="btn-view-monitor" class="btn btn-secondary">Espelhar Monitor</button>
+      <button id="btn-clone" class="btn btn-secondary">Clonar Atendente</button>
+      <button id="btn-change-password" class="btn btn-secondary">Trocar Senha</button>
+    </div>
+
+    <div class="admin-section danger">
+      <h4>Ações avançadas</h4>
+      <button id="btn-delete-config" class="btn btn-warning">Redefinir Cadastro</button>
+    </div>
+
     <div class="clones-panel">
       <h4>Clones</h4>
       <ul id="clone-list" class="list"></ul>
