@@ -1,3 +1,5 @@
+// SAFE REFACTOR: replaced multiple GETs by HMGET/HGETALL (read-only).
+// Do not change write/queue operations. Do not change API shapes.
 import { Redis } from "@upstash/redis";
 
 export async function handler(event) {
@@ -46,13 +48,16 @@ export async function handler(event) {
   }
 
   const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
-    await redis.mget(
-      prefix + "currentCall",
-      prefix + "callCounter",
-      prefix + "ticketCounter",
-      prefix + "currentAttendant",
-      prefix + "currentCallTs",
-      prefix + "logoutVersion"
+    await redis.hmget(
+      prefix + "state",
+      [
+        "currentCall",
+        "callCounter",
+        "ticketCounter",
+        "currentAttendant",
+        "currentCallTs",
+        "logoutVersion",
+      ]
     );
   const currentCall   = Number(currentCallRaw || 0);
   const callCounter   = Number(callCounterRaw || 0);
