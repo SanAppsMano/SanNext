@@ -70,7 +70,7 @@ document.addEventListener('visibilitychange', () => {
     requestWakeLock();
     fetchCurrent();
     clearInterval(intervalId);
-    intervalId = setInterval(fetchCurrent, 4000);
+    intervalId = setInterval(fetchCurrent, 5000);
   }
 });
 
@@ -128,6 +128,6 @@ async function fetchCurrent() {
 
 // Polling a cada 4 segundos
 fetchCurrent();
-intervalId = setInterval(fetchCurrent, 4000);
+intervalId = setInterval(fetchCurrent, 5000);
 
 requestWakeLock();
