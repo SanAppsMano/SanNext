@@ -21,18 +21,23 @@ export async function handler(event) {
     if (!pwHash && !monitor) {
       return { statusCode: 404, body: "Invalid link" };
     }
-    const prefix = `tenant:${tenantId}:`;
-    const last   = Number(await redis.get(prefix + "ticketCounter") || 0);
-    const called = Number(await redis.get(prefix + "callCounter") || 0);
+    const prefix   = `tenant:${tenantId}:`;
+    const stateKey = prefix + "state";
+    const [lastRaw, calledRaw] = await redis.hmget(
+      stateKey,
+      ["ticketCounter", "callCounter"]
+    );
+    const last   = Number(lastRaw || 0);
+    const called = Number(calledRaw || 0);
     if (nextTicket <= last) {
       return { statusCode: 400, body: "Ticket must be greater than last" };
     }
 
     const gap = nextTicket - last - 1; // números pulados
 
-    await redis.mset({
-      [prefix + "ticketCounter"]: nextTicket - 1,
-      ...(called >= last ? { [prefix + "callCounter"]: nextTicket - 1 } : {}),
+    await redis.hset(stateKey, {
+      ticketCounter: nextTicket - 1,
+      ...(called >= last ? { callCounter: nextTicket - 1 } : {}),
     });
 
     if (called >= last) {
