@@ -1,3 +1,5 @@
+// SAFE REFACTOR: reverted broken HMGET to MGET for existing keys (read-only).
+// Do not change write/queue operations. Do not change API shapes.
 import { Redis } from "@upstash/redis";
 
 export async function handler(event) {
