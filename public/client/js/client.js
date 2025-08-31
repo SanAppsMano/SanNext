@@ -120,7 +120,7 @@ function schedulePolling() {
   clearTimeout(resumeTimeout);
   clearInterval(countdownInterval);
   if (withinSchedule()) {
-    polling = setInterval(checkStatus, 4000);
+    polling = setInterval(checkStatus, 5000);
     checkStatus();
     btnCheck.hidden = true;
   } else {
